@@ -7,17 +7,13 @@ add_library(
         mime_node.cpp
 )
 
-if(D_TEST)
+add_executable(
+        ${PROJECT_NAME}_test
+        test/main.cpp
+)
 
-    add_executable(
-            ${PROJECT_NAME}_test
-            main.cpp
-    )
-
-    target_link_libraries(
-            ${PROJECT_NAME}_test
-            PUBLIC
-            ${PROJECT_NAME}
-    )
-
-endif ()
+target_link_libraries(
+        ${PROJECT_NAME}_test
+        PUBLIC
+        ${PROJECT_NAME}
+)
