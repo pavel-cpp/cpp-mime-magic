@@ -5,11 +5,41 @@
 
 int main() {
     using namespace std;
-    std::vector<char> str = {
+    /*std::vector<char> str = {
         -1, 1, 0, 2,
-    };
+    };*/
+    std::string str = "Hello  World!";
     magic::mime_node node(
-    uint8_t(-1)
+        "Hello",
+        {
+            {
+                uint8_t(','),
+                {
+                    {
+                        uint8_t(' '),
+                        {
+                            {
+                                "World!"
+                            }
+                        }
+                    },
+                    {
+                        "World!"
+                    }
+                }
+            },
+            {
+                uint8_t(' '),
+                {
+                    {
+                        "World!"
+                    }
+                }
+            },
+            {
+                "World!"
+            }
+        }
     );
     cout << node.process_data(str.data(), str.size()) << endl;
     return 0;
