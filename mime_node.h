@@ -68,12 +68,12 @@ namespace magic {
             operands operand = operands::equal,
             std::string message = ""
         )
-            : children_(children),
+            : variant(std::move(val)),
+              children_(std::move(children)),
               operand_(operand),
-              message_(std::move(message)),
-              variant(val) {
+              message_(std::move(message)) {
             if (std::holds_alternative<std::string>(*this)) {
-                if (operand_ != operands::equal || operand_ != operands::not_equal) {
+                if (operand_ != operands::equal && operand_ != operands::not_equal) {
                     throw std::invalid_argument("Invalid operand for string");
                 }
                 processed_ = std::get<std::string>(*this).size();
