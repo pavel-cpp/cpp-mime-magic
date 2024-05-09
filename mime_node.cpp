@@ -39,17 +39,11 @@ bool mime_node::process_data(const char *data, size_t size) const {
         return result;
     }
 
-    std::vector<bool> pre_result;
-    pre_result.reserve(children_.size());
-
-    for (const auto& node : children_) {
-        pre_result.emplace_back(node.process_data(data + processed_, size - processed_));
-    }
-
     bool handler_result = false;
-    for (bool res : pre_result) {
-        handler_result |= res;
+    for (const auto& node : children_) {
+        handler_result |= node.process_data(data + processed_, size - processed_));
     }
+
     result &= handler_result;
     // Make switch statement for operands
     return result;
