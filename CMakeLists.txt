@@ -4,7 +4,7 @@ project(mime_magic)
 add_library(
         ${PROJECT_NAME}
         STATIC
-        mime_node.cpp
+        src/mime_node.cpp
 )
 
 add_executable(
