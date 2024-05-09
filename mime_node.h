@@ -3,14 +3,11 @@
 
 #include <iostream>
 
-#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
-#include <utility>
 #include <variant>
 #include <vector>
 
@@ -72,6 +69,8 @@ namespace magic {
         bool process_data(const char *data, size_t size) const;
 
     private:
+
+        bool process_current(const char *data, size_t size) const;
 
         mime_array children_ {};
         operands operand_ {operands::equal};

@@ -9,7 +9,7 @@ int main() {
         -1, 1, 0, 2,
     };*/
 
-    std::string str = "Hello  World!";
+    std::string str = "Hello, World!";
     magic::mime_node node(
         "Hello",
         {

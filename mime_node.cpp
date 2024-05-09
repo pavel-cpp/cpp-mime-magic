@@ -23,11 +23,40 @@ mime_node::mime_node(value val, mime_array children, operands operand, std::stri
 }
 
 bool mime_node::process_data(const char *data, size_t size) const {
-    bool result;
-    if (std::holds_alternative<std::nullptr_t>(*this)) {
-        return false;
+    // if (std::holds_alternative<std::nullptr_t>(*this)) {
+    //     return true;
+    // }
+
+    bool result = process_current(data, size);
+
+    if (result == false) {
+        return result;
     }
 
+    std::cout << result << " '" << std::string(data, size) << "'" << std::endl;
+
+    if (children_.empty()) {
+        return result;
+    }
+
+    std::vector<bool> pre_result;
+    pre_result.reserve(children_.size());
+
+    for (const auto& node : children_) {
+        pre_result.emplace_back(node.process_data(data + processed_, size - processed_));
+    }
+
+    bool handler_result = false;
+    for (bool res : pre_result) {
+        handler_result |= res;
+    }
+    result &= handler_result;
+    // Make switch statement for operands
+    return result;
+}
+
+bool mime_node::process_current(const char *data, size_t size) const {
+    bool result;
     switch (operand_) {
     case operands::equal: {
         if (std::holds_alternative<std::string>(*this)) {
@@ -67,10 +96,6 @@ bool mime_node::process_data(const char *data, size_t size) const {
         break;
     }
     case operands::greater_than: {
-        if (std::holds_alternative<std::string>(*this)) {
-            throw 1;
-        }
-
         std::visit(
             [&](const auto& val) {
                 result = convert_raw_cast(data, val) == val;
@@ -83,17 +108,5 @@ bool mime_node::process_data(const char *data, size_t size) const {
         throw std::runtime_error(std::string("Invalid operand ") + std::to_string(static_cast<int>(operand_)));
     }
     }
-
-    std::vector<bool> pre_result;
-    pre_result.reserve(children_.size());
-
-    for (const auto& node : children_) {
-        pre_result.emplace_back(result && node.process_data(data + processed_, size));
-    }
-
-    for (bool res : pre_result) {
-        result = result || res;
-    }
-    // Make switch statement for operands
     return result;
 }
