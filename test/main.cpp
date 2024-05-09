@@ -8,6 +8,7 @@ int main() {
     /*std::vector<char> str = {
         -1, 1, 0, 2,
     };*/
+
     std::string str = "Hello  World!";
     magic::mime_node node(
         "Hello",
@@ -41,6 +42,7 @@ int main() {
             }
         }
     );
+    boolalpha(cout);
     cout << node.process_data(str.data(), str.size()) << endl;
     return 0;
 }
