@@ -5,6 +5,7 @@ namespace magic {
     template <typename Type>
     class mime_data final {
     public:
+
         mime_data(Type val)
             : value(val) {
             mask = ~mask;
@@ -15,32 +16,36 @@ namespace magic {
               mask(mask) {
         }
 
-        bool operator<(Type other) {
+        bool operator<(Type other) const {
             return (value & mask) < other;
         }
 
-        bool operator>(Type other) {
+        bool operator>(Type other) const {
             return (value & mask) > other;
         }
 
-        bool operator==(Type other) {
+        bool operator==(Type other) const {
             return (value & mask) == other;
         }
 
-        bool operator!=(Type other) {
+        bool operator!=(Type other) const {
             return (value & mask) != other;
         }
 
-        bool operator<=(Type other) {
+        bool operator<=(Type other) const {
             return (value & mask) <= other;
         }
 
-        bool operator>=(Type other) {
+        bool operator>=(Type other) const {
             return (value & mask) <= other;
         }
 
-        operator Type() {
+        operator Type() const {
             return value & mask;
+        }
+
+        [[nodiscard]] size_t size() const {
+            return sizeof(Type);
         }
 
     private:
