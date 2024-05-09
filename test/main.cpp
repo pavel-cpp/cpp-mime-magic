@@ -1,7 +1,9 @@
 #include <iostream>
 
 #include <vector>
-#include "../src/mime_node.h"
+
+#include "../src/loader/mime_loader.h"
+#include "../src/node/mime_node.h"
 
 int main() {
     using namespace std;

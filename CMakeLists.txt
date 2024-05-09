@@ -10,7 +10,8 @@ include_directories(
 add_library(
         ${PROJECT_NAME}
         STATIC
-        src/mime_node.cpp
+        src/node/mime_node.cpp
+        src/loader/mime_loader.cpp
 )
 
 add_executable(
