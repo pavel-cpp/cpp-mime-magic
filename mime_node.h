@@ -4,31 +4,25 @@
 #include <iostream>
 
 #include <cstdint>
-#include <cstring>
-#include <functional>
 #include <memory>
 #include <string>
 #include <variant>
 #include <vector>
+
+#include "mime_data.h"
 
 namespace magic {
     class mime_node;
 
     using mime_array = std::vector<mime_node>;
 
-
-
-    class mime_node
+    class mime_node final
         : private std::variant<
             std::nullptr_t,
-            uint8_t,
-            int8_t,
-            uint16_t,
-            int16_t,
-            uint32_t,
-            int32_t,
-            uint64_t,
-            int64_t,
+            mime_data<uint8_t>,
+            mime_data<uint16_t>,
+            mime_data<uint32_t>,
+            mime_data<uint64_t>,
             std::string
         > {
     public:
@@ -42,24 +36,30 @@ namespace magic {
             greater_than,
             bit_and,
             bit_or,
-            bit_xor,
+            bit_xor
         };
 
+        mime_node() = delete;
+
         mime_node(
-            value val,
-            mime_array children = {},
+            size_t offset,
+            const value& val,
+            const mime_array& children = {},
             operands operand = operands::equal,
-            std::string message = ""
+            const std::string& message = ""
         );
+
+        mime_node(const mime_node&) = default;
+
+        mime_node(mime_node&&) = default;
 
         bool process_data(const char *data, size_t size) const;
 
     private:
-
-        mime_array children_ {};
+        size_t offset_ {0};
         operands operand_ {operands::equal};
         std::string message_ {};
-        uint64_t processed_ {0};
+        mime_array children_ {};
     };
 } // magic
 

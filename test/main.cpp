@@ -9,41 +9,52 @@ int main() {
         -1, 1, 0, 2,
     };*/
 
-    std::string str = "Hello, World!";
+    std::string str = "HelloWorld!";
     str.push_back(5);
+    magic::mime_node n (5, magic::mime_data<uint16_t>(5));
+
     magic::mime_node node(
+        0,
         "Hello",
-        {
+        magic::mime_array{
             {
-                uint8_t(','),
-                {
+                5,
+                magic::mime_data<uint8_t>(','),
+                magic::mime_array {
                     {
-                        uint8_t(' '),
+                        6,
+                        magic::mime_data<uint8_t>(' '),
                         {
                             {
+                                7,
                                 "World!",
-                                {
-                                    {
-                                        int8_t(5)
+                                magic::mime_array {
+                                    magic::mime_node {
+                                        13,
+                                        magic::mime_data<uint8_t>(5),
                                     }
                                 }
                             }
                         }
                     },
                     {
+                        6,
                         "World!"
                     }
                 }
             },
             {
-                uint8_t(' '),
-                {
+                5,
+                magic::mime_data<uint8_t>(' '),
+                magic::mime_array{
                     {
+                        6,
                         "World!"
                     }
                 }
             },
             {
+                5,
                 "World!"
             }
         }

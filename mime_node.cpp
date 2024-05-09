@@ -1,5 +1,7 @@
 #include "mime_node.h"
 
+#include <cstring>
+
 using namespace magic;
 
 namespace {
@@ -12,29 +14,38 @@ namespace {
     }
 
     template <typename T>
-    bool is_enough_data(size_t size, T _) {
-        return size >= sizeof(T);
+    void is_enough_data(size_t size, T data, bool& res) {
+        res = size >= data.size();
+    }
+
+    void is_enough_data(size_t size, std::nullptr_t, bool& res) {
+        res = true;
+    }
+
+    bool is_enough_data(size_t size, const mime_node::value& node) {
+        bool result;
+        std::visit([&](const auto& val) {
+            is_enough_data(size, val, result);
+        }, node);
+        return result;
     }
 }
 
-mime_node::mime_node(value val, mime_array children, operands operand, std::string message)
-    : variant(std::move(val)),
-      children_(std::move(children)),
+mime_node::mime_node(
+    size_t offset,
+    const value& val,
+    const mime_array& children,
+    operands operand,
+    const std::string& message
+)
+    : variant(val),
+      offset_(offset),
       operand_(operand),
-      message_(std::move(message)) {
-    if (std::holds_alternative<std::string>(*this)) {
-        if (operand_ != operands::equal && operand_ != operands::not_equal) {
-            throw std::invalid_argument("Invalid operand for string");
-        }
-        processed_ = std::get<std::string>(*this).size();
-        return;
+      message_(message),
+      children_(children) {
+    if (std::holds_alternative<std::string>(*this) && (operand_ != operands::equal && operand_ != operands::not_equal)) {
+        throw std::invalid_argument("Invalid operand for string");
     }
-    std::visit(
-        [&](const auto& val) {
-            processed_ = sizeof(val);
-        },
-        static_cast<value>(*this)
-    );
 }
 
 class mime_node_bool_processor {
@@ -52,7 +63,7 @@ public:
     }
 
     template <typename Value>
-    void operator()(Value value) {
+    void operator()(mime_data<Value> value) {
         Value tmp = convert_raw<Value>(data_);
         switch (operand_) {
         case mime_node::operands::equal: {
@@ -102,23 +113,26 @@ private:
 };
 
 bool mime_node::process_data(const char *data, size_t size) const {
+    if (!is_enough_data(size - offset_, *this)) {
+        return false;
+    }
 
-    std::visit(
+    /*std::visit(
         [](const auto& val) {
             std::cout << val << std::endl;
         },
         static_cast<value>(*this)
-    );
+    );*/
 
     bool result;
 
-    std::visit(mime_node_bool_processor(data, size, operand_, result), static_cast<value>(*this));
+    std::visit(mime_node_bool_processor(data + offset_, size - offset_, operand_, result), static_cast<value>(*this));
 
     if (result == false) {
         return result;
     }
 
-    std::cout << result << " '" << std::string(data, size) << "'" << std::endl;
+    std::cout << result << " '" << std::string(data + offset_, size - offset_) << "'" << std::endl;
 
     if (children_.empty()) {
         return result;
@@ -126,7 +140,7 @@ bool mime_node::process_data(const char *data, size_t size) const {
 
     bool handler_result = false;
     for (const auto& node : children_) {
-        handler_result |= node.process_data(data + processed_, size - processed_);
+        handler_result |= node.process_data(data, size);
     }
 
     result &= handler_result;
