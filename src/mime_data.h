@@ -40,6 +40,18 @@ namespace magic {
             return (value & mask) <= other;
         }
 
+        bool operator&(Type other) const {
+            return (value & mask) & other;
+        }
+
+        bool operator|(Type other) const {
+            return (value & mask) | other;
+        }
+
+        bool operator^(Type other) const {
+            return (value & mask) ^ other;
+        }
+
         operator Type() const {
             return value & mask;
         }

@@ -82,6 +82,18 @@ public:
             result_ = tmp > value;
             break;
         }
+        case mime_node::operands::bit_and: {
+            result_ = tmp & value;
+            break;
+        }
+        case mime_node::operands::bit_or: {
+            result_ = tmp | value;
+            break;
+        }
+        case mime_node::operands::bit_xor: {
+            result_ = tmp ^ value;
+            break;
+        }
         default: {
             throw std::runtime_error(std::string("Invalid operand ") + std::to_string(static_cast<int>(operand_)));
         }

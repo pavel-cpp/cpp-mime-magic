@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include <vector>
-#include "../mime_node.h"
+#include "../src/mime_node.h"
 
 int main() {
     using namespace std;
@@ -10,17 +10,17 @@ int main() {
     };*/
 
     std::string str = "HelloWorld!";
-    str.push_back(5);
+    str.push_back(4);
     magic::mime_node n (5, magic::mime_data<uint16_t>(5));
 
     magic::mime_node node(
         0,
         "Hello",
-        magic::mime_array{
+        {
             {
                 5,
                 magic::mime_data<uint8_t>(','),
-                magic::mime_array {
+                {
                     {
                         6,
                         magic::mime_data<uint8_t>(' '),
@@ -28,10 +28,16 @@ int main() {
                             {
                                 7,
                                 "World!",
-                                magic::mime_array {
-                                    magic::mime_node {
+                                {
+                                    {
                                         13,
                                         magic::mime_data<uint8_t>(5),
+                                    },
+                                    {
+                                        13,
+                                        magic::mime_data<uint8_t>(5),
+                                        {},
+                                        magic::mime_node::operands::less_than
                                     }
                                 }
                             }
@@ -46,7 +52,7 @@ int main() {
             {
                 5,
                 magic::mime_data<uint8_t>(' '),
-                magic::mime_array{
+                {
                     {
                         6,
                         "World!"
