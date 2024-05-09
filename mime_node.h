@@ -16,21 +16,7 @@ namespace magic {
 
     using mime_array = std::vector<mime_node>;
 
-    namespace {
-        template <typename T>
-        T convert_raw(const void *ptr) {
-            // static_assert(std::is_trivially_copyable_v<T> == true);
-            T val;
-            std::memcpy(&val, ptr, sizeof(T));
-            return val;
-        }
 
-        template <typename D>
-        D convert_raw_cast(const void *ptr, D _) {
-            // std::cout << "Debug: " << std::is_same<D, int>() << std::endl;
-            return convert_raw<D>(ptr);
-        }
-    }
 
     class mime_node
         : private std::variant<
@@ -69,8 +55,6 @@ namespace magic {
         bool process_data(const char *data, size_t size) const;
 
     private:
-
-        bool process_current(const char *data, size_t size) const;
 
         mime_array children_ {};
         operands operand_ {operands::equal};

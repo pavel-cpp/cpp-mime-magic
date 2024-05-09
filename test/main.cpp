@@ -10,6 +10,7 @@ int main() {
     };*/
 
     std::string str = "Hello, World!";
+    str.push_back(5);
     magic::mime_node node(
         "Hello",
         {
@@ -20,7 +21,12 @@ int main() {
                         uint8_t(' '),
                         {
                             {
-                                "World!"
+                                "World!",
+                                {
+                                    {
+                                        int8_t(5)
+                                    }
+                                }
                             }
                         }
                     },
