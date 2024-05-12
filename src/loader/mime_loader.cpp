@@ -34,9 +34,9 @@ mime_node::value parse_value(std::string_view type, std::string_view value) {
         // TODO(Pavel): Обработай строку
 
         return result_value;
-    } else {
-        remove_operands(value, "=!<>&|^");
     }
+    remove_operands(value, "=!<>&|^");
+
 }
 
 mime_node::operands parse_operand(std::string_view line) {
