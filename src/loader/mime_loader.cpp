@@ -131,74 +131,29 @@ mime_node::value parse_value(std::string_view raw_type, std::string_view raw_val
 
     uint32_t value {parse_raw_value(raw_value)};
 
-    switch (raw_type) {
-    case "byte": {
+    if (raw_type == "byte") {
         return mime_data<uint8_t>(
             static_cast<uint8_t>(value),
             mask.empty() ? 0xFF : static_cast<uint8_t>(parse_raw_value(mask))
-            );
+        );
     }
-    case "short": {
+    if (raw_type == "short" || raw_type == "leshort" || raw_type == "beshort") {
         return mime_data<uint16_t>(
             static_cast<uint16_t>(value),
             mask.empty() ? 0xFF : static_cast<uint16_t>(parse_raw_value(mask))
-            );
+        );
     }
-    case "leshort": {
-        return mime_data<uint16_t>(
-            static_cast<uint16_t>(value),
-            mask.empty() ? 0xFF : static_cast<uint16_t>(parse_raw_value(mask))
-            );
-    }
-    case "beshort": {
-        return mime_data<uint16_t>(
-            static_cast<uint16_t>(value),
-            mask.empty() ? 0xFF : static_cast<uint16_t>(parse_raw_value(mask))
-            );
-    }
-    case "long": {
+    if (raw_type == "long" || raw_type == "lelong" || raw_type == "belong" || raw_type == "date" || raw_type ==
+        "ledate" || raw_type == "bedate") {
         return mime_data<uint32_t>(
             value,
             mask.empty() ? 0xFF : parse_raw_value(mask)
-            );
+        );
     }
-    case "lelong": {
-        return mime_data<uint32_t>(
-            value,
-            mask.empty() ? 0xFF : parse_raw_value(mask)
-            );
-    }
-    case "belong": {
-        return mime_data<uint32_t>(
-            value,
-            mask.empty() ? 0xFF : parse_raw_value(mask)
-            );
-    }
-    case "date": {
-        return mime_data<uint32_t>(
-            value,
-            mask.empty() ? 0xFF : parse_raw_value(mask)
-            );
-    }
-    case "ledate": {
-        return mime_data<uint32_t>(
-            value,
-            mask.empty() ? 0xFF : parse_raw_value(mask)
-            );
-    }
-    case "bedate": {
-        return mime_data<uint32_t>(
-            value,
-            mask.empty() ? 0xFF : parse_raw_value(mask)
-            );
-    }
-        default: {
-        throw std::runtime_error {
-            "Syntax error: Invalid type\n"
-            "In line: "s + std::string(raw_type)
-        };
-    }
-    }
+    throw std::runtime_error {
+        "Syntax error: Invalid type\n"
+        "In line: "s + std::string(raw_type)
+    };
 }
 
 mime_node::operands parse_operand(std::string_view line) {
@@ -248,10 +203,11 @@ size_t extract_level(std::string& line) {
         }
         ++level;
     }
+    line.erase(0, level);
     return level;
 }
 
-std::vector<mime_node> load_node(std::istream& in, size_t level) {
+std::vector<mime_node> load_nodes(std::istream& in, size_t level) {
     using namespace std::literals;
     std::string line;
     std::getline(in, line);
@@ -262,16 +218,13 @@ std::vector<mime_node> load_node(std::istream& in, size_t level) {
 
     std::vector<mime_node> children;
 
-    while (
-        std::getline(in, line)
-        || line.empty()
-        || line.front() == '\n'
-        || line.front() == '#'
-    ) {
+    do {
         size_t current_level = extract_level(line);
         if (current_level > level) {
-            in.seekg(in.cur - (current_level + line.size()));
-            load_node(in, ++level);
+            throw std::runtime_error {
+                "Syntax error: Invalid level\n"
+                "In line: "s + line
+            };
         }
         if (current_level < level) {
             in.seekg(in.cur - (current_level + line.size()));
@@ -290,11 +243,16 @@ std::vector<mime_node> load_node(std::istream& in, size_t level) {
         children.emplace_back(
             parse_offset(columns[0]),
             parse_value(columns[1], columns[2]),
-            load_node(in, current_level),
+            load_nodes(in, current_level + 1),
             parse_operand(columns[2]),
             std::string {columns[3]}
-        );
-    }
+      v   );
+    } while (
+        std::getline(in, line)
+        || line.empty()
+        || line.front() == '\n'
+        || line.front() == '#'
+    );
 
     return children;
 }
@@ -308,7 +266,7 @@ std::vector<mime_node> magic::load(std::istream& in) {
             continue;
         }
         in.seekg(in.cur - buffer.size());
-        nodes.emplace_back(0, nullptr, load_node(in, 0));
+        nodes.emplace_back(0, nullptr, load_nodes(in, 0));
     }
 
     return nodes;

@@ -7,7 +7,7 @@ using namespace magic;
 namespace {
     template <typename T>
     T convert_raw(const void *ptr) {
-        // static_assert(std::is_trivially_copyable_v<T> == true);
+        static_assert(std::is_trivially_copyable_v<T> == true);
         T val;
         std::memcpy(&val, ptr, sizeof(T));
         return val;
@@ -129,12 +129,12 @@ bool mime_node::process_data(const char *data, size_t size) const {
         return false;
     }
 
-    /*std::visit(
+    std::visit(
         [](const auto& val) {
             std::cout << val << std::endl;
         },
         static_cast<value>(*this)
-    );*/
+    );
 
     bool result;
 
