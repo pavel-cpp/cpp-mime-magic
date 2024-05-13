@@ -22,7 +22,6 @@ namespace magic {
             mime_data<uint8_t>,
             mime_data<uint16_t>,
             mime_data<uint32_t>,
-            mime_data<uint64_t>,
             std::string
         > {
     public:
