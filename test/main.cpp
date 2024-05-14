@@ -9,7 +9,8 @@
 int main() {
     using namespace std;
 
-    ifstream file("C:\\Sophus-NEW\\modules\\files.etl", ios::in | ios::binary);
+//    ifstream file("C:\\Sophus-NEW\\modules\\files.etl", ios::in | ios::binary);
+    ifstream file("magic", ios::in | ios::binary);
 
     auto nodes = magic::load(file);
 

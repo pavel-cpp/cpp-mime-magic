@@ -241,11 +241,20 @@ std::vector<string_view> split_by_columns(string_view line) {
     while (end != string_view::npos) {
         columns.push_back(line.substr(start, end - start));
         start = line.find_first_not_of('\t', end + 1);
-        if (line[start] == ' ' && columns.size() < 3) {
+        if (line[start] == ' ') {
+            std::string error_position {line};
+            for (char& c: error_position) {
+                if (c != '\t') {
+                    c = ' ';
+                }
+            }
+            error_position[start] = '^';
             throw std::runtime_error {
                     "Syntax Error: TAB Error\n"
                     "In line: "s + std::string {current_line} + '\n'
-                    + "\tSpace between columns must be tab"s
+                    + "\tSpace between columns must be tab\n"s
+                    + string {line} + '\n'
+                    + error_position
             };
         }
         end = line.find('\t', start);
@@ -281,6 +290,7 @@ mime_list load_nodes(std::istream& in, size_t level) {
     std::getline(in, line);
 
     if (line.size() <= 1 || line.front() == '\n' || line.front() == '\r' || line.front() == '#') {
+        ++current_line;
         return {};
     }
 
