@@ -2,6 +2,8 @@
 
 #include <sstream>
 #include <vector>
+#include <optional>
+#include <unordered_set>
 
 using std::string;
 using std::string_view;
@@ -73,8 +75,16 @@ char parse_symcode(string_view line) {
  * \c
  * TODO(Pavel): Add operands
  */
+const std::unordered_set<char> escape {
+        '\'', '\"', '\?',
+        'a', 'b', 'f',
+        'n', 'r', 't',
+        'v', '\\', '0'
+};
+
 char parse_escape(char c) {
     using namespace std::literals;
+
     switch (c) {
         case '\'':
             return '\'';
@@ -118,9 +128,11 @@ string parse_string(string_view line) {
                 i += 3;
                 continue;
             }
-            result += parse_escape(line[i + 1]);
-            ++i;
-            continue;
+            if (escape.find(line[i + 1]) != escape.end()) {
+                result += parse_escape(line[i + 1]);
+                ++i;
+                continue;
+            }
         }
         result += line[i];
     }
@@ -135,6 +147,9 @@ uint32_t parse_raw_value(string_view raw_value) {
     }
 
     if (raw_value.front() == '0') {
+        if (raw_value.size() < 2) {
+            return 0l;
+        }
         if (isdigit(raw_value[1])) {
             return std::stol(string(raw_value));
         }
@@ -166,7 +181,7 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
     string_view mask;
     if (mask_pos != string_view::npos) {
         mask = raw_type.substr(mask_pos + 1);
-        raw_type.remove_suffix(mask_pos + 1);
+        raw_type.remove_suffix(mask_pos); // TODO: See
     }
 
     uint32_t value;
@@ -284,20 +299,27 @@ size_t extract_level(string& line) {
     return level;
 }
 
-mime_list load_nodes(std::istream& in, size_t level) {
+std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
     using namespace std::literals;
     string line;
     std::getline(in, line);
 
-    if (line.size() <= 1 || line.front() == '\n' || line.front() == '\r' || line.front() == '#') {
+    if (line.size() <= 1 || line.front() == '\n' || line.front() == '\r') {
         ++current_line;
-        return {};
+        return {{}, true};
     }
 
-    mime_list children;
+    mime_list current_level_nodes;
+    bool end_of_node = false;
 
     do {
-        std::cout << line << std::endl;
+#ifdef LoadDebug
+        std::cout << std::string(current_line) << " " << line << std::endl;
+#endif
+        if (line.front() == '#') {
+            continue;
+        }
+
         ++current_line;
         size_t current_level = extract_level(line);
         if (current_level > level) {
@@ -308,6 +330,7 @@ mime_list load_nodes(std::istream& in, size_t level) {
         }
         if (current_level < level) {
             in.seekg(-static_cast<int64_t>(current_level + line.size() + 1), std::istream::cur);
+            --current_line;
             break;
         }
 
@@ -323,23 +346,30 @@ mime_list load_nodes(std::istream& in, size_t level) {
             columns[3].remove_suffix(1);
         }
 
+        auto [children, status] = load_nodes(in, current_level + 1);
+        end_of_node = status;
+
         // Create a new node
-        children.emplace_back(
+        current_level_nodes.emplace_back(
                 parse_offset(columns[0]),
                 parse_value(columns[1], columns[2]),
-                load_nodes(in, current_level + 1),
+                children,
                 parse_operand(columns[2]),
                 string {columns[3]}
         );
+
+        if (end_of_node) {
+            break;
+        }
+
     } while (
             std::getline(in, line)
             && line.size() >= 1
             && line.front() != '\r'
             && line.front() != '\n'
-            && line.front() != '#'
             );
 
-    return children;
+        return {current_level_nodes, end_of_node};
 }
 
 mime_list magic::load(std::istream& in) {
@@ -352,7 +382,13 @@ mime_list magic::load(std::istream& in) {
             continue;
         }
         in.seekg(-static_cast<int64_t>(buffer.size() + 1), std::istream::cur);
-        nodes.emplace_back(0, nullptr, load_nodes(in, 0));
+        //                                                                    First is a result
+        //                                                                           |
+        mime_list mimes = load_nodes(in, 0).first;
+        if (mimes.empty()) {
+            continue;
+        }
+        nodes.emplace_back(0, nullptr, mimes);
     }
 
     return nodes;

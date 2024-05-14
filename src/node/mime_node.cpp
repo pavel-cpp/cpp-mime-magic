@@ -137,7 +137,8 @@ bool mime_node::process_data(const char *data, size_t size) const {
     if (result == false) {
         return result;
     }
-
+#define ProcDebug
+#ifdef ProcDebug
     std::visit(
             [](const auto& val) {
                 std::cout << std::hex << "value = { " << val << " }, ";
@@ -145,8 +146,10 @@ bool mime_node::process_data(const char *data, size_t size) const {
             static_cast<value>(*this)
     );
 
-    std::cout << "branch = { " << message_ << " }, result = { " << result << " }, data = '" << std::string(data + offset_, size - offset_) << "'" << std::endl;
+    std::cout << "branch = { " << message_ << " }, result = { " << result << " }" << std::endl;
+//    std::cout << ", data = '" << std::string(data + offset_, size - offset_) << "'" << std::endl;
 
+#endif
 
     if (children_.empty()) {
         return result;
