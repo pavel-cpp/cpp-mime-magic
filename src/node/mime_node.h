@@ -7,14 +7,15 @@
 #include <memory>
 #include <string>
 #include <variant>
-#include <vector>
+#include <list>
 
 #include "mime_data.h"
 
 namespace magic {
     class mime_node;
 
-    using mime_array = std::vector<mime_node>;
+    using mime_string = std::string;
+    using mime_list = std::list<mime_node>;
 
     class mime_node final
         : private std::variant<
@@ -22,7 +23,7 @@ namespace magic {
             mime_data<uint8_t>,
             mime_data<uint16_t>,
             mime_data<uint32_t>,
-            std::string
+            mime_string
         > {
     public:
         using variant::variant;
@@ -42,13 +43,13 @@ namespace magic {
 
         mime_node(
             size_t offset,
-            const value& val,
-            const mime_array& children = {},
+            value val,
+            const mime_list& children = {},
             operands operand = operands::equal,
-            const std::string& message = ""
+            std::string message = ""
         );
 
-        mime_node(const mime_node&) = default;
+        mime_node(const mime_node& other) = default;
 
         mime_node(mime_node&&) = default;
 
@@ -58,7 +59,7 @@ namespace magic {
         size_t offset_ {0};
         operands operand_ {operands::equal};
         std::string message_ {};
-        mime_array children_ {};
+        mime_list children_ {};
     };
 } // magic
 

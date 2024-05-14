@@ -7,7 +7,7 @@
 
 namespace magic {
 
-    std::vector<mime_node> load(std::istream& in);
+    mime_list load(std::istream& in);
 
 
 } // magic
