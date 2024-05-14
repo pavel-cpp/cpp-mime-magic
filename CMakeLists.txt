@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 3.23)
 project(mime_magic)
 
+include_directories(
+        src
+        src/loader
+        srd/node
+)
+
 add_library(
         ${PROJECT_NAME}
         STATIC
-        src/mime_node.cpp
+        src/node/mime_node.cpp
+        src/loader/mime_loader.cpp
 )
 
 add_executable(

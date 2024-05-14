@@ -1,13 +1,14 @@
 #include "mime_node.h"
 
 #include <cstring>
+#include <utility>
 
 using namespace magic;
 
 namespace {
     template <typename T>
     T convert_raw(const void *ptr) {
-        // static_assert(std::is_trivially_copyable_v<T> == true);
+        static_assert(std::is_trivially_copyable_v<T> == true);
         T val;
         std::memcpy(&val, ptr, sizeof(T));
         return val;
@@ -33,19 +34,19 @@ namespace {
 
 mime_node::mime_node(
     size_t offset,
-    const value& val,
-    const mime_array& children,
+    value val,
+    const mime_list& children,
     operands operand,
-    const std::string& message
+    mime_string message
 )
-    : variant(val),
+    : variant(std::move(val)),
       offset_(offset),
       operand_(operand),
-      message_(message),
+      message_(std::move(message)),
       children_(children) {
-    if (std::holds_alternative<std::string>(*this) && (operand_ != operands::equal && operand_ != operands::not_equal)) {
-        throw std::invalid_argument("Invalid operand for string");
-    }
+//    if (std::holds_alternative<std::string>(*this) && (operand_ != operands::equal && operand_ != operands::not_equal)) {
+//        throw std::invalid_argument("Invalid operand for string");
+//    }
 }
 
 class mime_node_bool_processor {
@@ -100,8 +101,8 @@ public:
         }
     }
 
-    void operator()(const std::string& value) {
-        std::string tmp(data_, value.size());
+    void operator()(const mime_string& value) {
+        mime_string tmp(data_, value.size());
         switch (operand_) {
         case mime_node::operands::equal: {
             result_ = value == tmp;
@@ -129,13 +130,6 @@ bool mime_node::process_data(const char *data, size_t size) const {
         return false;
     }
 
-    /*std::visit(
-        [](const auto& val) {
-            std::cout << val << std::endl;
-        },
-        static_cast<value>(*this)
-    );*/
-
     bool result;
 
     std::visit(mime_node_bool_processor(data + offset_, size - offset_, operand_, result), static_cast<value>(*this));
@@ -143,8 +137,19 @@ bool mime_node::process_data(const char *data, size_t size) const {
     if (result == false) {
         return result;
     }
+#define ProcDebug
+#ifdef ProcDebug
+    std::visit(
+            [](const auto& val) {
+                std::cout << std::hex << "value = { " << val << " }, ";
+            },
+            static_cast<value>(*this)
+    );
 
-    std::cout << result << " '" << std::string(data + offset_, size - offset_) << "'" << std::endl;
+    std::cout << "branch = { " << message_ << " }, result = { " << result << " }" << std::endl;
+//    std::cout << ", data = '" << std::string(data + offset_, size - offset_) << "'" << std::endl;
+
+#endif
 
     if (children_.empty()) {
         return result;
