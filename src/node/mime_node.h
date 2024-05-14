@@ -50,18 +50,9 @@ namespace magic {
             );
 
             mime_node(const mime_node& other) = default;
-//                    : variant(static_cast<value>(other)),
-//                      offset_(other.offset_),
-//                      operand_(other.operand_),
-//                      message_(other.message_),
-//                      children_(other.children_) {}
 
             mime_node(mime_node&& other) = default;
-//                    : variant(std::move(static_cast<value>(other))),
-//                      offset_(std::move(other.offset_)),
-//                      operand_(std::move(other.operand_)),
-//                      message_(std::move(other.message_)),
-//                      children_(std::move(other.children_)) {}
+
 
             bool process_data(const char *data, size_t size) const;
 

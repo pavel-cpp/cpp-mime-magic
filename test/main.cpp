@@ -19,7 +19,7 @@ int main() {
 //
 //    vector<char> data {'H', 'e', 'l', 'l', 'o', 'W', 'o', 'r', 'l', 'd', static_cast<char>(0xFF), static_cast<char>(0xFF)};
 
-    string data;
+    vector<char> data;
     data.resize(29);
 
     ifstream png("image.png", ios::in | ios::binary);

@@ -1,68 +1,94 @@
 #ifndef MIME_DATA_H
 #define MIME_DATA_H
 
+#include <functional>
+#include <limits>
+
 namespace magic {
-    template <typename Type>
-    class mime_data final {
-    public:
 
-        mime_data(Type val)
-            : value(val) {
-            mask = ~mask;
-        }
+    template<typename Type>
+    class mime_data {
+        public:
 
-        mime_data(Type val, Type mask)
-            : value(val),
-              mask(mask) {
-        }
+            static Type le(Type value) {
+                return value;
+            }
 
-        bool operator<(Type other) const {
-            return (value & mask) < other;
-        }
+            static Type be(Type value) {
+                static_assert(std::numeric_limits<Type>::is_integer);
+                union {
+                    Type val;
+                    uint8_t arr[sizeof(Type)];
+                } result;
+                result.val = 0;
 
-        bool operator>(Type other) const {
-            return (value & mask) > other;
-        }
+                auto value_ptr {reinterpret_cast<const uint8_t *>(&value)};
+                for (size_t i {0}; i < sizeof(Type); ++i)
+                    result.arr[sizeof(Type) - 1 - i] = *(value_ptr++);
+                return result.val;
+            }
 
-        bool operator==(Type other) const {
-            return (value & mask) == other;
-        }
+            mime_data(Type val, std::function<Type(Type)> endian = le)
+                    : value_(val),
+                      endian_(endian) {
+                mask_ = ~0;
+            }
 
-        bool operator!=(Type other) const {
-            return (value & mask) != other;
-        }
+            mime_data(Type val, Type mask, std::function<Type(Type)> endian = le)
+                    : value_(val),
+                      mask_(mask),
+                      endian_(endian) {
+            }
 
-        bool operator<=(Type other) const {
-            return (value & mask) <= other;
-        }
+            bool operator<(Type other) const {
+                return (endian_(value_) & mask_) < other;
+            }
 
-        bool operator>=(Type other) const {
-            return (value & mask) <= other;
-        }
+            bool operator>(Type other) const {
+                return (endian_(value_) & mask_) > other;
+            }
 
-        bool operator&(Type other) const {
-            return (value & mask) & other;
-        }
+            bool operator==(Type other) const {
+                return (endian_(value_) & mask_) == other;
+            }
 
-        bool operator|(Type other) const {
-            return (value & mask) | other;
-        }
+            bool operator!=(Type other) const {
+                return (endian_(value_) & mask_) != other;
+            }
 
-        bool operator^(Type other) const {
-            return (value & mask) ^ other;
-        }
+            bool operator<=(Type other) const {
+                return (endian_(value_) & mask_) <= other;
+            }
 
-        operator Type() const {
-            return value & mask;
-        }
+            bool operator>=(Type other) const {
+                return (endian_(value_) & mask_) <= other;
+            }
 
-        [[nodiscard]] size_t size() const {
-            return sizeof(Type);
-        }
+            bool operator&(Type other) const {
+                return (endian_(value_) & mask_) & other;
+            }
 
-    private:
-        Type value {};
-        Type mask {};
+            bool operator|(Type other) const {
+                return (endian_(value_) & mask_) | other;
+            }
+
+            bool operator^(Type other) const {
+                return (endian_(value_) & mask_) ^ other;
+            }
+
+            virtual operator Type() const {
+                return endian_(value_) & mask_;
+            }
+
+            [[nodiscard]] size_t size() const {
+                return sizeof(Type);
+            }
+
+        private:
+            Type value_ {};
+            Type mask_ {};
+
+            std::function<Type(Type)> endian_;
     };
 }
 
