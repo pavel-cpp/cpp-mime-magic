@@ -169,7 +169,17 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
         raw_type.remove_suffix(mask_pos + 1);
     }
 
-    uint32_t value {parse_raw_value(raw_value)};
+    uint32_t value;
+
+    try {
+        value = parse_raw_value(raw_value);
+    } catch (std::invalid_argument&) {
+        throw std::runtime_error {
+                "Syntax Error: Invalid raw value\n"
+                "In line: "s + string {current_line} + '\n'
+                + "\tRaw value: "s + string {raw_value}
+        };
+    }
 
     if (raw_type == "byte") {
         return mime_data<uint8_t>(
@@ -231,6 +241,13 @@ std::vector<string_view> split_by_columns(string_view line) {
     while (end != string_view::npos) {
         columns.push_back(line.substr(start, end - start));
         start = line.find_first_not_of('\t', end + 1);
+        if (line[start] == ' ' && columns.size() < 3) {
+            throw std::runtime_error {
+                    "Syntax Error: TAB Error\n"
+                    "In line: "s + std::string {current_line} + '\n'
+                    + "\tSpace between columns must be tab"s
+            };
+        }
         end = line.find('\t', start);
     }
 
@@ -280,7 +297,6 @@ mime_list load_nodes(std::istream& in, size_t level) {
             };
         }
         if (current_level < level) {
-            --current_line;
             in.seekg(-static_cast<int64_t>(current_level + line.size() + 1), std::istream::cur);
             break;
         }
@@ -321,11 +337,10 @@ mime_list magic::load(std::istream& in) {
 
     mime_list nodes;
     while (std::getline(in, buffer)) {
-        ++current_line;
         if (buffer.size() <= 1 || buffer.front() == '#') {
+            ++current_line;
             continue;
         }
-        --current_line;
         in.seekg(-static_cast<int64_t>(buffer.size() + 1), std::istream::cur);
         nodes.emplace_back(0, nullptr, load_nodes(in, 0));
     }
