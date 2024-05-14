@@ -141,7 +141,7 @@ bool mime_node::process_data(const char *data, size_t size) const {
 #ifdef ProcDebug
     std::visit(
             [](const auto& val) {
-                std::cout << std::hex << "value = { " << val << " }, ";
+                std::cout << "value = { " << std::hex << val << " }, ";
             },
             static_cast<value>(*this)
     );
