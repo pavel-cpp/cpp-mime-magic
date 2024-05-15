@@ -68,31 +68,31 @@ public:
         Value tmp = convert_raw<Value>(data_);
         switch (operand_) {
         case mime_node::operands::equal: {
-            result_ = tmp == value;
+            result_ = value == tmp;
             break;
         }
         case mime_node::operands::not_equal: {
-            result_ = tmp != value;
+            result_ = value != tmp;
             break;
         }
         case mime_node::operands::less_than: {
-            result_ = tmp < value;
+            result_ = value > tmp;
             break;
         }
         case mime_node::operands::greater_than: {
-            result_ = tmp > value;
+            result_ = value < tmp;
             break;
         }
         case mime_node::operands::bit_and: {
-            result_ = tmp & value;
+            result_ = value & tmp;
             break;
         }
         case mime_node::operands::bit_or: {
-            result_ = tmp | value;
+            result_ = value | tmp;
             break;
         }
         case mime_node::operands::bit_xor: {
-            result_ = tmp ^ value;
+            result_ = value ^ tmp;
             break;
         }
         default: {
