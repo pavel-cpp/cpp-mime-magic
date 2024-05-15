@@ -30,17 +30,6 @@ class line_counter {
         string cnt_view {'0'};
 } current_line;
 
-size_t parse_offset(string_view line) {
-    size_t offset {0};
-    for (char c: line) {
-        if (c == '\t') {
-            break;
-        }
-        offset = offset * 10 + (c - '0');
-    }
-    return offset;
-}
-
 void remove_operands(string_view& value, string_view operands) {
     for (char c: operands) {
         if (value.front() == c) {
@@ -372,6 +361,9 @@ std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
         if (current_level < level) {
             in.seekg(-static_cast<int64_t>(current_level + line.size() + 1), std::istream::cur);
             --current_line;
+            if (current_level == 0) {
+                return {{}, true};
+            }
             break;
         }
 
@@ -392,7 +384,7 @@ std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
 
         // Create a new node
         current_level_nodes.emplace_back(
-                parse_offset(columns[0]),
+                parse_raw_value(columns[0]),
                 parse_value(columns[1], columns[2]),
                 children,
                 parse_operand(columns[2]),

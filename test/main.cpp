@@ -27,8 +27,9 @@ int main() {
 
     cout << "PNG" << endl;
     cout << std::string(80, '=') << endl << endl;
+    int i = 1;
     for (const auto& node: nodes) {
-        cout << node.process_data(data.data(), data.size()) << endl;
+        cout << i++ << ")\n" << node.process_data(data.data(), data.size()) << endl;
         cout << endl << std::string(80, '=') << endl << endl;
     }
 
@@ -37,8 +38,9 @@ int main() {
 
     cout << "JPEG" << endl;
     cout << std::string(80, '=') << endl << endl;
+    i = 1;
     for (const auto& node: nodes) {
-        cout << node.process_data(data.data(), data.size()) << endl;
+        cout << i++ << ")\n" << node.process_data(data.data(), data.size()) << endl;
         cout << endl << std::string(80, '=') << endl << endl;
     }
 
