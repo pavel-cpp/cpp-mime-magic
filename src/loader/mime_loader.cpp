@@ -151,10 +151,10 @@ uint32_t parse_raw_value(string_view raw_value) {
             return 0l;
         }
         if (isdigit(raw_value[1])) {
-            return std::stol(string(raw_value));
+            return std::stoul(string(raw_value));
         }
         if (raw_value[1] == 'x') {
-            return std::stol(string(raw_value), nullptr, 16);
+            return std::stoul(string(raw_value), nullptr, 16);
         }
         throw std::runtime_error {
                 "Syntax error: Invalid value\n"
@@ -162,7 +162,7 @@ uint32_t parse_raw_value(string_view raw_value) {
                 + "\tValue: "s + string(raw_value)
         };
     }
-    return std::stol(string(raw_value));
+    return std::stoul(string(raw_value));
 }
 
 mime_node::value parse_value(string_view raw_type, string_view raw_value) {
@@ -178,10 +178,10 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
 
     size_t mask_pos {raw_type.find('&')};
 
-    string_view mask;
+    string mask;
     if (mask_pos != string_view::npos) {
         mask = raw_type.substr(mask_pos + 1);
-        raw_type.remove_suffix(mask_pos); // TODO: See
+        raw_type.remove_suffix(raw_type.size() - mask_pos); // TODO: See
     }
 
     uint32_t value;
@@ -199,7 +199,7 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
     if (raw_type == "byte") {
         if (mask.empty()) {
             return mime_data<uint8_t> {
-                static_cast<uint8_t>(value)
+                    static_cast<uint8_t>(value)
             };
         }
         return mime_data<uint8_t> {
@@ -210,7 +210,6 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
 
     if (raw_type.substr(0, 2) == "be"sv) {
         raw_type.remove_prefix(2);
-        std::cout << "be " << raw_type << std::endl;
         if (raw_type == "short"sv) {
             if (mask.empty()) {
                 return mime_data<uint16_t> {
@@ -227,7 +226,7 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
         if (raw_type == "date"sv || raw_type == "long"sv) {
             if (mask.empty()) {
                 return mime_data<uint32_t> {
-                    value,
+                        value,
                         mime_data<uint32_t>::be
                 };
             }
@@ -297,39 +296,33 @@ mime_node::operands parse_operand(string_view line) {
 std::vector<string_view> split_by_columns(string_view line) {
     using namespace std::literals;
 
-    std::vector<string_view> columns;
-    size_t start {0};
-    size_t end {line.find('\t')};
-
-    while (end != string_view::npos) {
-        columns.push_back(line.substr(start, end - start));
-        start = line.find_first_not_of('\t', end + 1);
-        if (line[start] == ' ') {
-            std::string error_position {line};
-            for (char& c: error_position) {
-                if (c != '\t') {
-                    c = ' ';
-                }
-            }
-            error_position[start] = '^';
-            throw std::runtime_error {
-                    "Syntax Error: TAB Error\n"
-                    "In line: "s + std::string {current_line} + '\n'
-                    + "\tSpace between columns must be tab\n"s
-                    + string {line} + '\n'
-                    + error_position
-            };
-        }
-        end = line.find('\t', start);
+    std::vector<std::string_view> columns;
+    std::string_view::iterator left = line.begin();
+    std::string_view::iterator right = std::find_if(left, line.end(), isspace);
+    while (left != line.end() && columns.size() < 3) {
+        columns.emplace_back(left, std::distance(left, right));
+        left = right;
+        char prev = ' ';
+        left = std::find_if(left, line.end(), [](char c) { return !isspace(c); });
+        right = std::find_if(left, line.end(),
+                             [&prev](char c) {
+                                 if (isspace(c) && prev != '\\') {
+                                     prev = c;
+                                     return true;
+                                 }
+                                 prev = c;
+                                 return false;
+                             });
     }
 
-    // Add the last column if any
-    if (start != string_view::npos) {
-        columns.push_back(line.substr(start));
+    if (columns.size() != 3) {
+        throw std::runtime_error{"Syntax Error"}; // TODO(Pavel): Write reason
     }
 
-    if (columns.size() == 3) {
-        columns.push_back(""sv);
+    if (left < line.end()) {
+        columns.emplace_back(left, std::distance(left, line.end()));
+    }else {
+        columns.emplace_back(""sv);
     }
 
     return columns;

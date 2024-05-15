@@ -6,10 +6,10 @@
 #include "../src/loader/mime_loader.h"
 #include "../src/node/mime_node.h"
 
-
 int main() {
     using namespace std;
     boolalpha(cout);
+    system("chcp 1251");
 
 //    ifstream file("C:\\Sophus-NEW\\modules\\files.etl", ios::in | ios::binary);
     ifstream file("magic", ios::in | ios::binary);
@@ -25,17 +25,22 @@ int main() {
     ifstream png("image.png", ios::in | ios::binary);
     png.read(data.data(), data.size());
 
+    cout << "PNG" << endl;
+    cout << std::string(80, '=') << endl << endl;
     for (const auto& node: nodes) {
         cout << node.process_data(data.data(), data.size()) << endl;
         cout << endl << std::string(80, '=') << endl << endl;
     }
 
-//    ifstream jpeg("image.jpeg", ios::in | ios::binary);
-//    jpeg.read(data.data(), data.size());
-//
-//    for (const auto& node: nodes) {
-//        cout << node.process_data(data.data(), data.size()) << endl;
-//    }
+    ifstream jpeg("image.jpeg", ios::in | ios::binary);
+    jpeg.read(data.data(), data.size());
+
+    cout << "JPEG" << endl;
+    cout << std::string(80, '=') << endl << endl;
+    for (const auto& node: nodes) {
+        cout << node.process_data(data.data(), data.size()) << endl;
+        cout << endl << std::string(80, '=') << endl << endl;
+    }
 
 
     return 0;

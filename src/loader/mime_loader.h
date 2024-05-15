@@ -9,7 +9,6 @@ namespace magic {
 
     mime_list load(std::istream& in);
 
-
 } // magic
 
 #endif //LOADER_H

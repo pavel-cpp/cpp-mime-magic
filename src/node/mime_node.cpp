@@ -137,6 +137,7 @@ bool mime_node::process_data(const char *data, size_t size) const {
     if (result == false) {
         return result;
     }
+
 #define ProcDebug
 #ifdef ProcDebug
     std::visit(
@@ -164,3 +165,4 @@ bool mime_node::process_data(const char *data, size_t size) const {
     // Make switch statement for operands
     return result;
 }
+

@@ -30,13 +30,15 @@ namespace magic {
             using value = variant;
 
             enum class operands {
-                equal,
-                not_equal,
-                less_than,
-                greater_than,
-                bit_and,
-                bit_or,
-                bit_xor
+                equal,                  // =
+                not_equal,              // !
+                less_than,              // <
+                greater_than,           // >
+                bit_and,                // & - only for number
+                bit_or,                 // | - only for number
+                bit_xor,                // ^ - only for number
+                any,                    // x - any value
+                case_sensitive_equal    // ~ - only for string
             };
 
             mime_node() = delete;
@@ -52,7 +54,6 @@ namespace magic {
             mime_node(const mime_node& other) = default;
 
             mime_node(mime_node&& other) = default;
-
 
             bool process_data(const char *data, size_t size) const;
 
