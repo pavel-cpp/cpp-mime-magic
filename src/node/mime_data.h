@@ -5,6 +5,11 @@
 #include <limits>
 
 namespace magic {
+    template<typename Type>
+    class mime_data;
+
+    template<typename Type>
+    Type like(Type data, mime_data<Type> src);
 
     template<typename Type>
     class mime_data {
@@ -53,6 +58,8 @@ namespace magic {
             }
 
             bool operator!=(Type other) const {
+                auto res = endian_(value_);
+                auto rres = res & mask_;
                 return (endian_(value_) & mask_) != other;
             }
 
@@ -76,7 +83,7 @@ namespace magic {
                 return (endian_(value_) & mask_) ^ other;
             }
 
-            virtual operator Type() const {
+            operator Type() const {
                 return endian_(value_) & mask_;
             }
 
@@ -89,7 +96,20 @@ namespace magic {
             Type mask_ {};
 
             std::function<Type(Type)> endian_;
+
+            template<typename T>
+            friend T like(T, mime_data<T>);
     };
+
+    template<typename Type>
+    Type like(Type data, mime_data<Type> src) {
+        return src.endian_(data);
+    }
+
+    template<typename Type>
+    Type like(Type data, std::function<Type(Type)> endian) {
+        return endian(data);
+    }
 }
 
 #endif //MIME_DATA_H

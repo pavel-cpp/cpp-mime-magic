@@ -68,31 +68,31 @@ public:
         Value tmp = convert_raw<Value>(data_);
         switch (operand_) {
         case mime_node::operands::equal: {
-            result_ = tmp == value;
+            result_ = value == tmp;
             break;
         }
         case mime_node::operands::not_equal: {
-            result_ = tmp != value;
+            result_ = value != tmp;
             break;
         }
         case mime_node::operands::less_than: {
-            result_ = tmp < value;
+            result_ = value > tmp;
             break;
         }
         case mime_node::operands::greater_than: {
-            result_ = tmp > value;
+            result_ = value < tmp;
             break;
         }
         case mime_node::operands::bit_and: {
-            result_ = tmp & value;
+            result_ = value & tmp;
             break;
         }
         case mime_node::operands::bit_or: {
-            result_ = tmp | value;
+            result_ = value | tmp;
             break;
         }
         case mime_node::operands::bit_xor: {
-            result_ = tmp ^ value;
+            result_ = value ^ tmp;
             break;
         }
         default: {
@@ -141,7 +141,7 @@ bool mime_node::process_data(const char *data, size_t size) const {
 #ifdef ProcDebug
     std::visit(
             [](const auto& val) {
-                std::cout << std::hex << "value = { " << val << " }, ";
+                std::cout << "value = { " << std::hex << val << " }, ";
             },
             static_cast<value>(*this)
     );

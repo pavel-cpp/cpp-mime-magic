@@ -197,23 +197,71 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
     }
 
     if (raw_type == "byte") {
-        return mime_data<uint8_t>(
+        if (mask.empty()) {
+            return mime_data<uint8_t> {
+                static_cast<uint8_t>(value)
+            };
+        }
+        return mime_data<uint8_t> {
                 static_cast<uint8_t>(value),
-                mask.empty() ? 0xFF : static_cast<uint8_t>(parse_raw_value(mask))
-        );
+                static_cast<uint8_t>(parse_raw_value(mask))
+        };
     }
-    if (raw_type == "short" || raw_type == "leshort" || raw_type == "beshort") {
+
+    if (raw_type.substr(0, 2) == "be"sv) {
+        raw_type.remove_prefix(2);
+        std::cout << "be " << raw_type << std::endl;
+        if (raw_type == "short"sv) {
+            if (mask.empty()) {
+                return mime_data<uint16_t> {
+                        static_cast<uint16_t>(value),
+                        mime_data<uint16_t>::be
+                };
+            }
+            return mime_data<uint16_t> {
+                    static_cast<uint16_t>(value),
+                    static_cast<uint16_t>(parse_raw_value(mask)),
+                    mime_data<uint16_t>::be
+            };
+        }
+        if (raw_type == "date"sv || raw_type == "long"sv) {
+            if (mask.empty()) {
+                return mime_data<uint32_t> {
+                    value,
+                        mime_data<uint32_t>::be
+                };
+            }
+            return mime_data<uint32_t> {
+                    value,
+                    parse_raw_value(mask),
+                    mime_data<uint32_t>::be
+            };
+        }
+        throw std::runtime_error {
+                "Syntax error: Invalid type\n"
+                "In line: "s + string(current_line) + '\n'
+                + "Type: "s + string(raw_type)
+        };
+    }
+
+    if (raw_type == "short"sv || raw_type == "leshort"sv) {
+        if (mask.empty()) {
+            return mime_data<uint16_t> {
+                    static_cast<uint16_t>(value)
+            };
+        }
         return mime_data<uint16_t>(
                 static_cast<uint16_t>(value),
-                mask.empty() ? 0xFF : static_cast<uint16_t>(parse_raw_value(mask))
+                static_cast<uint16_t>(parse_raw_value(mask))
         );
     }
-    if (raw_type == "long" || raw_type == "lelong" || raw_type == "belong" || raw_type == "date" || raw_type ==
-                                                                                                    "ledate" ||
-        raw_type == "bedate") {
+    if (raw_type == "long"sv || raw_type == "lelong"sv || raw_type == "date"sv || raw_type == "ledate"sv) {
+        if (mask.empty()) {
+            return mime_data<uint32_t> {value};
+        }
         return mime_data<uint32_t>(
                 value,
-                mask.empty() ? 0xFF : parse_raw_value(mask)
+                parse_raw_value(mask)
         );
     }
     throw std::runtime_error {
@@ -369,7 +417,7 @@ std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
             && line.front() != '\n'
             );
 
-        return {current_level_nodes, end_of_node};
+    return {current_level_nodes, end_of_node};
 }
 
 mime_list magic::load(std::istream& in) {
