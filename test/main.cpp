@@ -3,17 +3,37 @@
 
 #include <vector>
 
-#include "../src/loader/mime_loader.h"
-#include "../src/node/mime_node.h"
+#include <chrono>
+
+class Timer {
+    public:
+        Timer() {
+            start = std::chrono::high_resolution_clock::now();
+        }
+
+        ~Timer() {
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+            std::cout << "Time taken: " << duration.count() << " ms" << std::endl;
+        }
+
+    private:
+        std::chrono::time_point<std::chrono::high_resolution_clock> start;
+};
+
+#include "loader/mime_loader.h"
 
 int main() {
     using namespace std;
     boolalpha(cout);
     system("chcp 1251");
 
-    ifstream file("C:\\Sophus-NEW\\modules\\files.etl", ios::in | ios::binary);
+    magic::mime_list nodes;
+    {
+        Timer t;
+        nodes = magic::load("C:\\Sophus-NEW\\modules\\files.etl");
+    }
 //    ifstream file("magic", ios::in | ios::binary);
-    auto nodes = magic::load(file);
 
     cout << nodes.size() << " node workers SUCCESSFULLY LOADED!" << endl;
     system("pause");

@@ -1,9 +1,14 @@
 #include "mime_loader.h"
 
+#include "nodes/numeric_node/numeric_node.h"
+#include "nodes/date_node/date_node.h"
+#include "nodes/string_node/string_node.h"
+
 #include <sstream>
 #include <vector>
 #include <optional>
 #include <unordered_set>
+#include <fstream>
 
 using std::string;
 using std::string_view;
@@ -197,33 +202,68 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
         };
     }
 
-    if (raw_type.substr(0, 2) == "be"sv) {
+    bool sign {raw_type.front() != 'u'}; // Есть ли знак у типа
+    if (!sign) {
+        raw_type.remove_prefix(1);
+    }
+
+    if (raw_type.substr(0, 2) == "big_endian"sv) {
         raw_type.remove_prefix(2);
         if (raw_type == "short"sv) {
             if (mask.empty()) {
+                if (sign) {
+                    return mime_data<int16_t> {
+                            static_cast<int16_t>(value),
+                            mime_data<int16_t>::be
+                    };
+                } else {
+                    return mime_data<uint16_t> {
+                            static_cast<uint16_t>(value),
+                            mime_data<uint16_t>::be
+                    };
+                }
+            }
+            if (sign) {
                 return mime_data<uint16_t> {
                         static_cast<uint16_t>(value),
+                        static_cast<uint16_t>(parse_raw_value(mask)),
+                        mime_data<uint16_t>::be
+                };
+            } else {
+                return mime_data<uint16_t> {
+                        static_cast<uint16_t>(value),
+                        static_cast<uint16_t>(parse_raw_value(mask)),
                         mime_data<uint16_t>::be
                 };
             }
-            return mime_data<uint16_t> {
-                    static_cast<uint16_t>(value),
-                    static_cast<uint16_t>(parse_raw_value(mask)),
-                    mime_data<uint16_t>::be
-            };
         }
         if (raw_type == "date"sv || raw_type == "long"sv) {
             if (mask.empty()) {
+                if (sign) {
+                    return mime_data<int32_t> {
+                            static_cast<int32_t>(value),
+                            mime_data<int32_t>::be
+                    };
+                } else {
+                    return mime_data<uint32_t> {
+                            static_cast<uint32_t>(value),
+                            mime_data<uint32_t>::be
+                    };
+                }
+            }
+            if (sign) {
+                return mime_data<int32_t> {
+                        static_cast<int32_t>(value),
+                        static_cast<int32_t>(parse_raw_value(mask)),
+                        mime_data<uint32_t>::be
+                };
+            } else {
                 return mime_data<uint32_t> {
-                        value,
+                        static_cast<uint32_t>(value),
+                        parse_raw_value(mask),
                         mime_data<uint32_t>::be
                 };
             }
-            return mime_data<uint32_t> {
-                    value,
-                    parse_raw_value(mask),
-                    mime_data<uint32_t>::be
-            };
         }
         throw std::runtime_error {
                 "Syntax error: Invalid type\n"
@@ -234,14 +274,27 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
 
     if (raw_type == "short"sv || raw_type == "leshort"sv) {
         if (mask.empty()) {
+            if (sign) {
+                return mime_data<int16_t> {
+                        static_cast<int16_t>(value)
+                };
+            } else {
+                return mime_data<uint16_t> {
+                        static_cast<uint16_t>(value)
+                };
+            }
+        }
+        if (sign) {
             return mime_data<uint16_t> {
-                    static_cast<uint16_t>(value)
+                    static_cast<uint16_t>(value),
+                    static_cast<uint16_t>(parse_raw_value(mask))
+            };
+        } else {
+            return mime_data<uint16_t> {
+                    static_cast<uint16_t>(value),
+                    static_cast<uint16_t>(parse_raw_value(mask))
             };
         }
-        return mime_data<uint16_t>(
-                static_cast<uint16_t>(value),
-                static_cast<uint16_t>(parse_raw_value(mask))
-        );
     }
     if (raw_type == "long"sv || raw_type == "lelong"sv || raw_type == "date"sv || raw_type == "ledate"sv) {
         if (mask.empty()) {
@@ -260,6 +313,9 @@ mime_node::value parse_value(string_view raw_type, string_view raw_value) {
 }
 
 mime_node::operands parse_operand(string_view line) {
+    if (line == "x") {
+        return mime_node::operands::any;
+    }
     switch (line.front()) {
         case '<':
             return mime_node::operands::less_than;
@@ -275,8 +331,8 @@ mime_node::operands parse_operand(string_view line) {
             return mime_node::operands::bit_or;
         case '^':
             return mime_node::operands::bit_xor;
-        case 'x':
-            return mime_node::operands::bit_or; // x is any value
+        case '~':
+            return mime_node::operands::case_sensitive_equal;
         default:
             return mime_node::operands::equal;
     }
@@ -342,7 +398,8 @@ std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
         if (line.front() == '#'
             || line.size() <= 1
             || line.front() == '\n'
-            || line.front() == '\r') {
+            || line.front() == '\r'
+                ) {
             continue;
         }
 
@@ -376,14 +433,14 @@ std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
 
         auto [children, status] = load_nodes(in, current_level + 1);
         end_of_node = status;
-            // Create a new node
-            current_level_nodes.emplace_back(
-                    parse_raw_value(columns[0]),
-                    parse_value(columns[1], columns[2]),
-                    children,
-                    parse_operand(columns[2]),
-                    string {columns[3]}
-            );
+        // Create a new node
+        current_level_nodes.emplace_back(
+                parse_raw_value(columns[0]),
+                parse_value(columns[1], columns[2]),
+                children,
+                parse_operand(columns[2]),
+                string {columns[3]}
+        );
 
     } while (!end_of_node && std::getline(in, line));
 
@@ -410,4 +467,9 @@ mime_list magic::load(std::istream& in) {
     }
 
     return nodes;
+}
+
+mime_list magic::load(const string& filename) {
+    std::ifstream file {filename, std::ios::in | std::ios::binary};
+    return load(file);
 }
