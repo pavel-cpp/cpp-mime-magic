@@ -1,71 +1,52 @@
+#include <fstream>
 #include <iostream>
 
 #include <vector>
-#include "../src/mime_node.h"
+
+#include "../src/loader/mime_loader.h"
+#include "../src/node/mime_node.h"
 
 int main() {
     using namespace std;
-    /*std::vector<char> str = {
-        -1, 1, 0, 2,
-    };*/
-
-    std::string str = "HelloWorld!";
-    str.push_back(4);
-    magic::mime_node n (5, magic::mime_data<uint16_t>(5));
-
-    magic::mime_node node(
-        0,
-        "Hello",
-        {
-            {
-                5,
-                magic::mime_data<uint8_t>(','),
-                {
-                    {
-                        6,
-                        magic::mime_data<uint8_t>(' '),
-                        {
-                            {
-                                7,
-                                "World!",
-                                {
-                                    {
-                                        13,
-                                        magic::mime_data<uint8_t>(5),
-                                    },
-                                    {
-                                        13,
-                                        magic::mime_data<uint8_t>(5),
-                                        {},
-                                        magic::mime_node::operands::less_than
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    {
-                        6,
-                        "World!"
-                    }
-                }
-            },
-            {
-                5,
-                magic::mime_data<uint8_t>(' '),
-                {
-                    {
-                        6,
-                        "World!"
-                    }
-                }
-            },
-            {
-                5,
-                "World!"
-            }
-        }
-    );
     boolalpha(cout);
-    cout << node.process_data(str.data(), str.size()) << endl;
+    system("chcp 1251");
+
+    ifstream file("C:\\Sophus-NEW\\modules\\files.etl", ios::in | ios::binary);
+//    ifstream file("magic", ios::in | ios::binary);
+    auto nodes = magic::load(file);
+
+    cout << nodes.size() << " node workers SUCCESSFULLY LOADED!" << endl;
+    system("pause");
+
+//    string str {"HelloWorld"};
+//
+//    vector<char> data {'H', 'e', 'l', 'l', 'o', 'W', 'o', 'r', 'l', 'd', static_cast<char>(0xFF), static_cast<char>(0xFF)};
+
+    vector<char> data;
+    data.resize(29);
+
+    ifstream png("image.png", ios::in | ios::binary);
+    png.read(data.data(), data.size());
+
+    cout << "PNG" << endl;
+    cout << std::string(80, '=') << endl << endl;
+    int i = 1;
+    for (const auto& node: nodes) {
+        cout << dec << i++ << hex << ")\n" << node.process_data(data.data(), data.size()) << endl;
+        cout << endl << std::string(80, '=') << endl << endl;
+    }
+
+    ifstream jpeg("jpeg-home.jpg", ios::in | ios::binary);
+    jpeg.read(data.data(), data.size());
+
+    cout << "JPEG" << endl;
+    cout << std::string(80, '=') << endl << endl;
+    i = 1;
+    for (const auto& node: nodes) {
+        cout << dec << i++ << hex << ")\n" << node.process_data(data.data(), data.size()) << endl;
+        cout << endl << std::string(80, '=') << endl << endl;
+    }
+
+
     return 0;
 }
