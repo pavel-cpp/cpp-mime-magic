@@ -138,7 +138,6 @@ bool mime_node::process_data(const char *data, size_t size) const {
         return result;
     }
 
-#define ProcDebug
 #ifdef ProcDebug
     std::visit(
             [](const auto& val) {
