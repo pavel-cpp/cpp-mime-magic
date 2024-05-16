@@ -11,9 +11,12 @@ int main() {
     boolalpha(cout);
     system("chcp 1251");
 
-//    ifstream file("C:\\Sophus-NEW\\modules\\files.etl", ios::in | ios::binary);
-    ifstream file("magic", ios::in | ios::binary);
+    ifstream file("C:\\Sophus-NEW\\modules\\files.etl", ios::in | ios::binary);
+//    ifstream file("magic", ios::in | ios::binary);
     auto nodes = magic::load(file);
+
+    cout << nodes.size() << " node workers SUCCESSFULLY LOADED!" << endl;
+    system("pause");
 
 //    string str {"HelloWorld"};
 //
@@ -29,18 +32,18 @@ int main() {
     cout << std::string(80, '=') << endl << endl;
     int i = 1;
     for (const auto& node: nodes) {
-        cout << i++ << ")\n" << node.process_data(data.data(), data.size()) << endl;
+        cout << dec << i++ << hex << ")\n" << node.process_data(data.data(), data.size()) << endl;
         cout << endl << std::string(80, '=') << endl << endl;
     }
 
-    ifstream jpeg("image.jpeg", ios::in | ios::binary);
+    ifstream jpeg("jpeg-home.jpg", ios::in | ios::binary);
     jpeg.read(data.data(), data.size());
 
     cout << "JPEG" << endl;
     cout << std::string(80, '=') << endl << endl;
     i = 1;
     for (const auto& node: nodes) {
-        cout << i++ << ")\n" << node.process_data(data.data(), data.size()) << endl;
+        cout << dec << i++ << hex << ")\n" << node.process_data(data.data(), data.size()) << endl;
         cout << endl << std::string(80, '=') << endl << endl;
     }
 

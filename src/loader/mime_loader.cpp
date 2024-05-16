@@ -305,12 +305,12 @@ std::vector<string_view> split_by_columns(string_view line) {
     }
 
     if (columns.size() != 3) {
-        throw std::runtime_error{"Syntax Error"}; // TODO(Pavel): Write reason
+        throw std::runtime_error {"Syntax Error"}; // TODO(Pavel): Write reason
     }
 
     if (left < line.end()) {
         columns.emplace_back(left, std::distance(left, line.end()));
-    }else {
+    } else {
         columns.emplace_back(""sv);
     }
 
@@ -334,23 +334,18 @@ std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
     string line;
     std::getline(in, line);
 
-    if (line.size() <= 1 || line.front() == '\n' || line.front() == '\r') {
-        ++current_line;
-        return {{}, true};
-    }
-
     mime_list current_level_nodes;
     bool end_of_node = false;
 
     do {
-#ifdef LoadDebug
-        std::cout << std::string(current_line) << " " << line << std::endl;
-#endif
-        if (line.front() == '#') {
+        ++current_line;
+        if (line.front() == '#'
+            || line.size() <= 1
+            || line.front() == '\n'
+            || line.front() == '\r') {
             continue;
         }
 
-        ++current_line;
         size_t current_level = extract_level(line);
         if (current_level > level) {
             throw std::runtime_error {
@@ -381,26 +376,16 @@ std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
 
         auto [children, status] = load_nodes(in, current_level + 1);
         end_of_node = status;
-
-        // Create a new node
-        current_level_nodes.emplace_back(
-                parse_raw_value(columns[0]),
-                parse_value(columns[1], columns[2]),
-                children,
-                parse_operand(columns[2]),
-                string {columns[3]}
-        );
-
-        if (end_of_node) {
-            break;
-        }
-
-    } while (
-            std::getline(in, line)
-            && line.size() >= 1
-            && line.front() != '\r'
-            && line.front() != '\n'
+            // Create a new node
+            current_level_nodes.emplace_back(
+                    parse_raw_value(columns[0]),
+                    parse_value(columns[1], columns[2]),
+                    children,
+                    parse_operand(columns[2]),
+                    string {columns[3]}
             );
+
+    } while (!end_of_node && std::getline(in, line));
 
     return {current_level_nodes, end_of_node};
 }
