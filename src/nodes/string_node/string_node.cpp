@@ -1,6 +1,6 @@
 #include "string_node.h"
 
-#include "../../utils.h"
+#include "nodes/utils.h"
 
 #include <algorithm>
 
@@ -12,7 +12,11 @@ void tolower(std::string& str) {
     }
 }
 
-abstract_mime_node::response_t string_node::process_current(const char *data, size_t size) {
+basic_mime_node::response_t string_node::process_current(const char *data, size_t size) {
+    using namespace std::literals;
+    if (!value_.empty() && value_.size() < size && value_ != "\0"s) {
+        size = value_.size();
+    }
     std::string temp {data, size};
     if (opt_ == options::case_sensitive) {
         tolower(temp);
@@ -25,7 +29,10 @@ abstract_mime_node::response_t string_node::process_current(const char *data, si
         case operands::not_equal:       return temp != value_ ? response_t {message_} : std::nullopt;
         case operands::less_than:       return temp < value_ ? response_t {message_} : std::nullopt;
         case operands::greater_than:    return temp > value_ ? response_t {message_} : std::nullopt;
+        default:
+            throw 1; // TODO(pavel-cpp): Дописать нормальное исключение
     }
+    return std::nullopt;
 }
 
 bool string_node::is_enough_data(size_t size) {
@@ -37,9 +44,8 @@ string_node::string_node(
         const string_node::data_template& data,
         std::string message,
         mime_list children
-        ) : basic_mime_node {offset, message, std::move(children)},
+        ) : basic_mime_node {offset, std::move(message), std::move(children)},
         value_ {data.value},
         opt_ {data.opt},
         operand_ {data.operand}
         {}
-

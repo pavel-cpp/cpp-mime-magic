@@ -1,36 +1,32 @@
 #ifndef _MIME_MAGIC_NUMERIC_NODE_H_
 #define _MIME_MAGIC_NUMERIC_NODE_H_
 
-#include "basic_mime_node.h"
-#include "utils.h"
+#include <functional>
+#include "nodes/basic_mime_node.h"
+#include "nodes/utils.h"
+#include "nodes/common.h"
+
+#include <variant>
 
 namespace magic {
 
-    template<typename Type>
+
     class numeric_node final : public basic_mime_node {
         public:
 
-            enum class orders {
-                big_endian,
-                little_endian
-            };
-
-            enum class operands {
-                any,
-                equal,
-                not_equal,
-                less_than,
-                greater_than,
-                bit_and,
-                bit_or,
-                bit_xor
-            };
+            using types = std::variant<
+                    uint8_t,
+                    int16_t,
+                    uint16_t,
+                    int32_t,
+                    uint32_t
+            >;
 
             struct data_template {
-                Type value {};
-                Type mask {~0};
+                types value {};
+                types mask {~0};
                 operands operand {operands::equal};
-                orders byte_order {orders::little_endian};
+                std::function<void(char * , size_t)> normalize_byte_order;
             };
 
             explicit numeric_node(
@@ -38,43 +34,89 @@ namespace magic {
                     const data_template& data,
                     std::string message,
                     mime_list children
-                    ) : basic_mime_node {offset, message, std::move(children)},
-                        value_ {data.value},
-                        mask_ {data.mask},
-                        operand_ {data.operand},
-                        byte_order_ {data.byte_order} {
+            ) : basic_mime_node {offset, std::move(message), std::move(children)},
+                value_ {data.value},
+                mask_ {data.mask},
+                operand_ {data.operand},
+                normalize_byte_order_ {data.normalize_byte_order} {
             }
+
+            numeric_node(numeric_node&&) noexcept = default;
+
+            ~numeric_node() override = default;
 
         private:
 
-            Type value_ {};
-            Type mask_ {~0};
+            types value_ {};
+            types mask_ {~0};
             operands operand_ {operands::equal};
-            orders byte_order_ {orders::little_endian};
+            std::function<void(char * , size_t)> normalize_byte_order_;
 
             bool is_enough_data(size_t size) override {
-                return sizeof(Type) < size;
+                int size_of_type;
+                std::visit([&](auto t) {
+                    size_of_type = sizeof(t);
+                }, value_);
+                return size_of_type < size;
+            }
+
+            template<typename Type>
+            void extract_value(Type& dst, const char *data) {
+                std::string tmp {data, sizeof(Type)};
+                normalize_byte_order_(tmp.data(), tmp.size());
+                dst = utils::convert_raw<Type>(tmp.data());
             }
 
             response_t process_current(const char *data, size_t size) override {
-                Type tmp = utils::convert_raw<Type>(data);
-                if (byte_order_ == orders::big_endian) {
-                    tmp = utils::change_order(tmp);
-                }
+                types tmp = value_;
+                std::visit([&](auto& value) {
+                    extract_value(value, data);
+                }, tmp);
 
+
+                std::string result;
                 // TODO(pavel-cpp): It may be necessary to do something different for bit operations
-                std::string result = utils::format(message_, tmp);
+                std::visit(
+                        [&](auto value) {
+                            result = utils::format(message_, value);
+                        },
+                        tmp
+                );
 
-                switch(operand_) {
-                    case operands::any: return result;
-                    case operands::equal: return (tmp & mask_) == value_ ? result : std::nullopt;
-                    case operands::not_equal: return (tmp & mask_) != value_ ? result : std::nullopt;
-                    case operands::less_than: return (tmp & mask_) < value_ ? result : std::nullopt;
-                    case operands::greater_than: return (tmp & mask_) > value_ ? result : std::nullopt;
-                    case operands::bit_and: return (tmp & mask_) & value_ ? result : std::nullopt;
-                    case operands::bit_or: return (tmp & mask_) | value_ ? result : std::nullopt;
-                    case operands::bit_xor: return (tmp & mask_) ^ value_ ? result : std::nullopt;
-                }
+                response_t response;
+                std::visit(
+                        [&](auto val){
+                            switch (operand_) {
+                                case operands::any:
+                                    response = std::make_optional(result);
+                                    break;
+                                case operands::equal:
+                                    response = (val & std::get<typeof(val)>(mask_)) == std::get<typeof(val)>(value_) ? std::make_optional(result) : std::nullopt;
+                                    break;
+                                case operands::not_equal:
+                                    response = (val & std::get<typeof(val)>(mask_)) != std::get<typeof(val)>(value_) ? std::make_optional(result) : std::nullopt;
+                                    break;
+                                case operands::less_than:
+                                    response = (val & std::get<typeof(val)>(mask_)) < std::get<typeof(val)>(value_) ? std::make_optional(result) : std::nullopt;
+                                    break;
+                                case operands::greater_than:
+                                    response = (val & std::get<typeof(val)>(mask_)) > std::get<typeof(val)>(value_) ? std::make_optional(result) : std::nullopt;
+                                    break;
+                                case operands::bit_and:
+                                    response = (val & std::get<typeof(val)>(mask_)) & std::get<typeof(val)>(value_) ? std::make_optional(result) : std::nullopt;
+                                    break;
+                                case operands::bit_or:
+                                    response = (val & std::get<typeof(val)>(mask_)) | std::get<typeof(val)>(value_) ? std::make_optional(result) : std::nullopt;
+                                    break;
+                                case operands::bit_xor:
+                                    response = (val & std::get<typeof(val)>(mask_)) ^ std::get<typeof(val)>(value_) ? std::make_optional(result) : std::nullopt;
+                                    break;
+                            }
+                            }
+                        ,tmp
+                        );
+
+                return response;
             }
 
     };

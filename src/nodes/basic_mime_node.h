@@ -22,12 +22,18 @@ namespace magic {
 
             basic_mime_node(size_t offset, std::string message, mime_list children);
 
+            basic_mime_node(basic_mime_node&&) noexcept = default;
+
+            basic_mime_node(const basic_mime_node&) = delete;
+
             response_t process_data(const char *data, size_t size);
 
             virtual ~basic_mime_node() = default;
 
         protected:
             std::string message_ {};
+
+        protected:
 
             virtual bool is_enough_data(size_t size);
 

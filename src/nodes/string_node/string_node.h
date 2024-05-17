@@ -1,19 +1,12 @@
 #ifndef _MIME_MAGIC_STRING_NODE_H_
 #define _MIME_MAGIC_STRING_NODE_H_
 
-#include "basic_mime_node.h"
+#include "nodes/basic_mime_node.h"
+#include "nodes/common.h"
 
 namespace magic {
     class string_node final : public basic_mime_node {
         public:
-
-            enum class operands {
-                any,
-                equal,
-                not_equal,
-                less_than,
-                greater_than
-            };
 
             enum options {
                 none,
@@ -28,6 +21,10 @@ namespace magic {
 
             explicit string_node(size_t offset, const data_template& data, std::string message, mime_list children);
 
+            string_node(string_node&&) noexcept = default;
+
+            ~string_node() override = default;
+
         private:
 
             bool is_enough_data(size_t size) override;
@@ -39,6 +36,7 @@ namespace magic {
             operands operand_ {operands::equal};
 
     };
+
 }
 
 #endif //_MIME_MAGIC_STRING_NODE_H_

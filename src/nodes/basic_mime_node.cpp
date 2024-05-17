@@ -10,7 +10,7 @@ basic_mime_node::basic_mime_node(size_t offset, std::string message, mime_list c
 }
 
 basic_mime_node::response_t basic_mime_node::process_data(const char *data, size_t size) {
-    if (!is_enough_data(size - offset_)) {
+    if (offset_ > size || !is_enough_data(size - offset_)) {
         return std::nullopt;
     }
 
@@ -27,6 +27,7 @@ basic_mime_node::response_t basic_mime_node::process_data(const char *data, size
     response_t handler_result;
     for (const auto& node: children_) {
         response_t node_result = node->process_data(data, size);
+
         if (node_result.has_value()) {
             if (!handler_result.has_value()) {
                 handler_result = node_result.value();
