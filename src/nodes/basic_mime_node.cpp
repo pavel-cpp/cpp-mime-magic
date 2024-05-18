@@ -31,6 +31,7 @@ basic_mime_node::response_t basic_mime_node::process_data(const char *data, size
         if (node_result.has_value()) {
             if (!handler_result.has_value()) {
                 handler_result = node_result.value();
+                continue;
             }
             handler_result.value() += node_result.value();
         }
