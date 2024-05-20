@@ -17,28 +17,27 @@ using std::string_view;
 using namespace magic;
 
 class line_counter {
-    public:
+public:
+    operator string() {
+        return cnt_view;
+    }
 
-        operator string() {
-            return cnt_view;
-        }
+    string operator++() {
+        return cnt_view = std::to_string(++line_cnt);
+    }
 
-        string operator++() {
-            return cnt_view = std::to_string(++line_cnt);
-        }
+    string operator--() {
+        return cnt_view = std::to_string(--line_cnt);
+    }
 
-        string operator--() {
-            return cnt_view = std::to_string(--line_cnt);
-        }
-
-    private:
-        size_t line_cnt {};
-        string cnt_view {'0'};
+private:
+    size_t line_cnt{};
+    string cnt_view{'0'};
 } current_line;
 
-void remove_operands(string_view& value, string_view operands) {
+void remove_operands(string_view &value, string_view operands) {
     for (char c: operands) {
-        if(c == 'x' && value == "x") {
+        if (c == 'x' && value == "x") {
             value.remove_prefix(1);
             return;
         }
@@ -60,10 +59,10 @@ char parse_symcode(string_view line) {
         return std::stoi(string(line.substr(1)));
     }
 
-    throw std::runtime_error {
-            "Syntax error: Invalid symbol code\n"
-            "In line: "s + string(current_line) + "\n"
-            + "\tCode: "s + line[0]
+    throw std::runtime_error{
+        "Syntax error: Invalid symbol code\n"
+        "In line: "s + string(current_line) + "\n"
+        + "\tCode: "s + line[0]
     };
 }
 
@@ -74,11 +73,11 @@ char parse_symcode(string_view line) {
  * \c
  * TODO(Pavel): Add operands
  */
-const std::unordered_set<char> escape {
-        '\'', '\"', '\?',
-        'a', 'b', 'f',
-        'n', 'r', 't',
-        'v', '\\', '0'
+const std::unordered_set<char> escape{
+    '\'', '\"', '\?',
+    'a', 'b', 'f',
+    'n', 'r', 't',
+    'v', '\\', '0'
 };
 
 char parse_escape(char c) {
@@ -112,10 +111,10 @@ char parse_escape(char c) {
         case ' ':
             return ' ';
         default:
-            throw std::runtime_error {
-                    "Syntax error: Invalid escape sequence\n"
-                    "In line: "s + string(current_line) + "\n"s
-                    + "\tSequence: \\"s + c
+            throw std::runtime_error{
+                "Syntax error: Invalid escape sequence\n"
+                "In line: "s + string(current_line) + "\n"s
+                + "\tSequence: \\"s + c
             };
     }
 }
@@ -141,7 +140,7 @@ string parse_string(string_view line) {
     return result;
 }
 
-int64_t parse_raw_value(string_view raw_value) {
+int64_t parse_single_raw_value(string_view raw_value) {
     using namespace std::literals;
 
     if (raw_value == "x") {
@@ -158,10 +157,10 @@ int64_t parse_raw_value(string_view raw_value) {
         if (raw_value[1] == 'x') {
             return std::stoll(string(raw_value), nullptr, 16);
         }
-        throw std::runtime_error {
-                "Syntax error: Invalid value\n"
-                "In line: "s + string(current_line)
-                + "\tValue: "s + string(raw_value)
+        throw std::runtime_error{
+            "Syntax error: Invalid value\n"
+            "In line: "s + string(current_line)
+            + "\tValue: "s + string(raw_value)
         };
     }
 
@@ -170,6 +169,34 @@ int64_t parse_raw_value(string_view raw_value) {
     }
 
     return std::stoll(string(raw_value));
+}
+
+// Supports only minus and plus expressions
+int64_t eval_parse_raw_value(string_view raw_value) {
+    if(raw_value.front() == '(') {
+        if (raw_value.back() != ')') {
+            throw std::runtime_error("Syntax Error: Parenthes error");
+        }
+        raw_value.remove_prefix(1);
+        raw_value.remove_suffix(1);
+
+        size_t operator_pos {raw_value.find('+')};
+        if (operator_pos == string_view::npos) {
+            operator_pos = raw_value.find('-');
+        }
+
+        // If operator not found
+        if (operator_pos == string_view::npos) {
+            throw std::runtime_error("Syntax Error: Invalid operator");
+        }
+        const int64_t lhs {parse_single_raw_value(raw_value.substr(0, operator_pos))};
+        const int64_t rhs {parse_single_raw_value(raw_value.substr(operator_pos + 1))};
+        if(raw_value[operator_pos] == '+') {
+            return lhs + rhs;
+        }
+        return lhs - rhs;
+    }
+    return parse_single_raw_value(raw_value);
 }
 
 operands parse_operand(string_view line) {
@@ -197,49 +224,51 @@ operands parse_operand(string_view line) {
 }
 
 struct node_context {
-    size_t offset {};
-    std::string message {};
-    mime_list mimes {};
+    size_t offset{};
+    std::string message{};
+    mime_list mimes{};
 
     node_context() = default;
 
-    node_context(size_t offset, std::string message, mime_list&& mimes) : offset(offset), message(message),
-                                                                          mimes(std::move(mimes)) {}
+    node_context(size_t offset, std::string message, mime_list &&mimes) : offset(offset), message(message),
+                                                                          mimes(std::move(mimes)) {
+    }
 
-    node_context(const node_context&) = delete;
+    node_context(const node_context &) = delete;
 
-    node_context(node_context&&) = default;
+    node_context(node_context &&) = default;
 };
 
 std::unique_ptr<basic_mime_node> create_string(node_context context, std::string_view raw_type, string_view raw_value) {
     return std::make_unique<string_node>(
-            context.offset,
-            string_node::data_template {
-                    parse_string(raw_value),
-                    string_node::options::none,
-                    parse_operand(raw_value)
-            },
-            context.message,
-            std::move(context.mimes)
+        context.offset,
+        string_node::data_template{
+            parse_string(raw_value),
+            string_node::options::none,
+            parse_operand(raw_value)
+        },
+        context.message,
+        std::move(context.mimes)
     );
 }
 
 std::unique_ptr<basic_mime_node> create_date(node_context context, std::string_view raw_type, string_view raw_value) {
     using namespace std::literals;
     date_node::data_template data;
-    if (raw_type.substr(2) == "be"sv) {
+    if (raw_type.substr(2) == "be"sv
+    ) {
         data.normalize_byte_order = utils::change_order<time_t>;
     } else {
         data.normalize_byte_order = [](auto val) { return val; };
     }
     data.operand = parse_operand(raw_value);
     remove_operands(raw_value, "=!<>x");
-    data.value = parse_raw_value(raw_value);
+    data.value = eval_parse_raw_value(raw_value);
     return std::make_unique<date_node>(
-            context.offset,
-            data,
-            context.message,
-            std::move(context.mimes)
+        context.offset,
+        data,
+        context.message,
+        std::move(context.mimes)
     );
 }
 
@@ -249,8 +278,7 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
     operands operand = parse_operand(raw_value);
     remove_operands(raw_value, "=!<>&|^x");
 
-    uint64_t mask {~0ull};
-    {
+    uint64_t mask{~0ull}; {
         size_t mask_pos = raw_type.find('&');
         string tmp_mask;
         if (mask_pos != string_view::npos) {
@@ -258,25 +286,27 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
             raw_type.remove_suffix(raw_type.size() - mask_pos);
         }
         if (!tmp_mask.empty()) {
-            mask = parse_raw_value(tmp_mask);
+            mask = eval_parse_raw_value(tmp_mask);
         }
     }
 
     numeric_node::types final_value;
     numeric_node::types final_mask;
-    std::function<void(char *, size_t)> byte_order_normalizer = [](char *, size_t) {};
+    std::function<void(char *, size_t)> byte_order_normalizer = [](char *, size_t) {
+    };
 
-    if (raw_type == "byte"sv) {
+    if (raw_type == "byte"sv
+    ) {
         return std::make_unique<numeric_node>(
-                context.offset,
-                numeric_node::data_template {
-                        static_cast<uint8_t>(parse_raw_value(raw_value)),
-                        static_cast<uint8_t>(mask),
-                        operand,
-                        byte_order_normalizer
-                },
-                context.message,
-                std::move(context.mimes)
+            context.offset,
+            numeric_node::data_template{
+                static_cast<uint8_t>(eval_parse_raw_value(raw_value)),
+                static_cast<uint8_t>(mask),
+                operand,
+                byte_order_normalizer
+            },
+            context.message,
+            std::move(context.mimes)
         );
     }
 
@@ -294,36 +324,37 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
 
     if (raw_type == "short") {
         if (sign) {
-            final_value = static_cast<int16_t>(parse_raw_value(raw_value));
+            final_value = static_cast<int16_t>(eval_parse_raw_value(raw_value));
             final_mask = static_cast<int16_t>(mask);
         } else {
-            final_value = static_cast<uint16_t>(parse_raw_value(raw_value));
+            final_value = static_cast<uint16_t>(eval_parse_raw_value(raw_value));
             final_mask = static_cast<uint16_t>(mask);
         }
     } else if (raw_type == "long") {
         if (sign) {
-            final_value = static_cast<int32_t>(parse_raw_value(raw_value));
+            final_value = static_cast<int32_t>(eval_parse_raw_value(raw_value));
             final_mask = static_cast<int32_t>(mask);
         } else {
-            final_value = static_cast<uint32_t>(parse_raw_value(raw_value));
+            final_value = static_cast<uint32_t>(eval_parse_raw_value(raw_value));
             final_mask = static_cast<uint32_t>(mask);
         }
     } else {
-        throw std::runtime_error {"Tyta Syntax Error: Unknown type\n"s +
-                                  "In line: " + std::string(current_line) + "\n" +
-                                  "Type: " + std::string(raw_type)
+        throw std::runtime_error{
+            "Tyta Syntax Error: Unknown type\n"s +
+            "In line: " + std::string(current_line) + "\n" +
+            "Type: " + std::string(raw_type)
         };
     }
     return std::make_unique<numeric_node>(
-            context.offset,
-            numeric_node::data_template {
-                    final_value,
-                    final_mask,
-                    operand,
-                    byte_order_normalizer
-            },
-            context.message,
-            std::move(context.mimes)
+        context.offset,
+        numeric_node::data_template{
+            final_value,
+            final_mask,
+            operand,
+            byte_order_normalizer
+        },
+        context.message,
+        std::move(context.mimes)
     );
 }
 
@@ -339,18 +370,18 @@ std::unique_ptr<basic_mime_node> create(node_context context, std::string_view r
     }
 
     if (
-            raw_type.find("byte") != string_view::npos
-            || raw_type.find("short") != string_view::npos
-            || raw_type.find("long") != string_view::npos
-            ) {
+        raw_type.find("byte") != string_view::npos
+        || raw_type.find("short") != string_view::npos
+        || raw_type.find("long") != string_view::npos
+    ) {
         return create_numeric(std::move(context), raw_type, raw_value);
     }
 
-    throw std::runtime_error {"Zdesya Syntax Error: Unknown type\n"s +
-                              "In line: " + std::string(current_line) + "\n" +
-                              "Type: " + std::string(raw_type)
+    throw std::runtime_error{
+        "Zdesya Syntax Error: Unknown type\n"s +
+        "In line: " + std::string(current_line) + "\n" +
+        "Type: " + std::string(raw_type)
     };
-
 }
 
 std::vector<string_view> split_by_columns(string_view line) {
@@ -376,7 +407,7 @@ std::vector<string_view> split_by_columns(string_view line) {
     }
 
     if (columns.size() != 3) {
-        throw std::runtime_error {"Syntax Error"}; // TODO(Pavel): Write reason
+        throw std::runtime_error{"Syntax Error"}; // TODO(Pavel): Write reason
     }
 
     if (left < line.end()) {
@@ -388,8 +419,8 @@ std::vector<string_view> split_by_columns(string_view line) {
     return columns;
 }
 
-size_t extract_level(string& line) {
-    size_t level {0};
+size_t extract_level(string &line) {
+    size_t level{0};
     for (char c: line) {
         if (c != '>') {
             break;
@@ -400,7 +431,7 @@ size_t extract_level(string& line) {
     return level;
 }
 
-std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
+std::pair<mime_list, bool> load_nodes(std::istream &in, size_t level) {
     using namespace std::literals;
     string line;
     std::getline(in, line);
@@ -414,35 +445,35 @@ std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
             || line.size() <= 1
             || line.front() == '\n'
             || line.front() == '\r'
-                ) {
+        ) {
             continue;
         }
 
         size_t current_level = extract_level(line);
         if (current_level > level) {
-            throw std::runtime_error {
-                    "Syntax error: Invalid level\n"
-                    "In line: "s + string(current_line)
+            throw std::runtime_error{
+                "Syntax error: Invalid level\n"
+                "In line: "s + string(current_line)
             };
         }
         if (current_level < level) {
             in.seekg(-static_cast<int64_t>(current_level + line.size() + 1), std::istream::cur);
             --current_line;
             if (current_level == 0) {
-                return {std::move(mime_list {}), true};
+                return {std::move(mime_list{}), true};
             }
             break;
         }
 
-        auto columns {split_by_columns(line)};
+        auto columns{split_by_columns(line)};
         if (columns.size() < 4) {
-            throw std::runtime_error {
-                    "Syntax error: Invalid number of columns\n"
-                    "In line: "s + string(current_line)
+            throw std::runtime_error{
+                "Syntax error: Invalid number of columns\n"
+                "In line: "s + string(current_line)
             };
         }
 
-        std::string message {columns[3]};
+        std::string message{columns[3]};
         if (message.back() == '\r') {
             message.back() = ' ';
         }
@@ -452,22 +483,21 @@ std::pair<mime_list, bool> load_nodes(std::istream& in, size_t level) {
         // Create a new node
         current_level_nodes.emplace_back(std::move(
                 create(
-                        {
-                                static_cast<size_t>(parse_raw_value(columns[0])),
-                                message,
-                                std::move(children)
-                        },
-                        columns[1],
-                        columns[2]
+                    {
+                        static_cast<size_t>(eval_parse_raw_value(columns[0])),
+                        message,
+                        std::move(children)
+                    },
+                    columns[1],
+                    columns[2]
                 ))
         );
-
     } while (!end_of_node && std::getline(in, line));
 
     return {std::move(current_level_nodes), end_of_node};
 }
 
-mime_list magic::load(std::istream& in) {
+mime_list magic::load(std::istream &in) {
     string buffer;
 
     mime_list nodes;
@@ -479,7 +509,7 @@ mime_list magic::load(std::istream& in) {
         in.seekg(-static_cast<int64_t>(buffer.size() + 1), std::istream::cur);
         //                                                                    First is a result
         //                                                                           |
-        mime_list mimes {std::move(load_nodes(in, 0).first)};
+        mime_list mimes{std::move(load_nodes(in, 0).first)};
         if (mimes.empty()) {
             continue;
         }
@@ -489,7 +519,7 @@ mime_list magic::load(std::istream& in) {
     return std::move(nodes);
 }
 
-mime_list magic::load(const string& filename) {
-    std::ifstream file {filename, std::ios::in | std::ios::binary};
+mime_list magic::load(const string &filename) {
+    std::ifstream file{filename, std::ios::in | std::ios::binary};
     return std::move(load(file));
 }

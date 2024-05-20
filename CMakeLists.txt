@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
-project(mime_magic)
+project(mime_magic CXX)
+
+SET(CMAKE_CXX_STANDARD 17)
 
 include_directories(
         src

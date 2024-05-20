@@ -61,8 +61,8 @@ int main() {
         cout << endl << std::string(80, '=') << endl << endl;
     }
 
-    ifstream jpeg("jpeg-home.jpg", ios::in | ios::binary);
-    jpeg.read(data.data(), data.size());
+    ifstream corrupt_png("corrupted-image.png", ios::in | ios::binary);
+    corrupt_png.read(data.data(), data.size());
 
     cout << "JPEG" << endl;
     cout << std::string(80, '=') << endl << endl;
