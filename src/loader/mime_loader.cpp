@@ -46,7 +46,7 @@ char parse_symcode(string_view line) {
     throw loading_error {
             current_line,
             "Invalid symbol code"s,
-            std::string {1, line[0]}
+            std::string {line[0]}
     };
 }
 
@@ -303,8 +303,8 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
         }
     }
 
-    numeric_node::types final_value;
-    numeric_node::types final_mask;
+    numeric_node::type final_value;
+    numeric_node::type final_mask;
     std::function<void(char *, size_t)> byte_order_normalizer = [](char *, size_t) {
     };
 
@@ -435,10 +435,10 @@ std::vector<string_view> split_by_columns(string_view line) {
     return columns;
 }
 
-void remove_all_escapes(std::string& str) {
+void replace_escapes(std::string& str) {
     size_t pos {0};
     while ((pos = str.find('\\', pos)) != std::string::npos) {
-        str.replace(pos, 2, std::string {parse_escape(str[pos + 1]), 1});
+        str.replace(pos, 2, std::string {parse_escape(str[pos + 1])});
     }
 }
 
@@ -502,12 +502,12 @@ loading_result load_nodes(std::istream& in, size_t level) {
         }
 
         std::string message {columns[3]};
-//        remove_all_escapes(message);
-//        if (message.back() == '\r') {
-//            message.back() = ' ';
-//        } else {
-//            message.push_back(' ');
-//        }
+        replace_escapes(message);
+        if (message.back() == '\r') {
+            message.back() = ' ';
+        } else if (message.back() != ' ') {
+            message.push_back(' ');
+        }
 
         auto [children, status] = load_nodes(in, current_level + 1);
         result.status = status;

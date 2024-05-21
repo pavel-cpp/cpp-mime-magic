@@ -43,38 +43,46 @@ int main() {
 //
 //    vector<char> data {'H', 'e', 'l', 'l', 'o', 'W', 'o', 'r', 'l', 'd', static_cast<char>(0xFF), static_cast<char>(0xFF)};
     vector<char> data;
-    data.resize(29);
+    data.resize(30);
 
-    ifstream png("image.png", ios::in | ios::binary);
-    png.read(data.data(), data.size());
+    {
+        ifstream png("image.png", ios::in | ios::binary);
+        png.read(data.data(), data.size());
 
-    cout << "PNG" << endl;
-    cout << std::string(80, '=') << endl << endl;
-    int i = 1;
-    for (const auto& node: nodes) {
-        auto response = node->process_data(data.data(), data.size());
-        if (response.has_value()) {
-            cout << dec << i << hex << ")\n" << response.value() << endl;
-            cout << endl << std::string(80, '=') << endl << endl;
+        cout << "PNG" << endl;
+        cout << std::string(80, '=') << endl << endl;
+        int i = 1;
+        for (const auto& node: nodes) {
+            auto response = node->process_data(data.data(), data.size());
+            if (response.has_value()) {
+                cout << dec << i << hex << ")\n" << response.value() << endl;
+                cout << endl << std::string(80, '=') << endl << endl;
+                break;
+            }
+            ++i;
         }
-        ++i;
     }
+    data.clear();
+    data.shrink_to_fit();
+    data.resize(30);
 
-    ifstream corrupt_png("corrupted-image.png", ios::in | ios::binary);
-    corrupt_png.read(data.data(), data.size());
+    {
+        ifstream corrupt_png("corrupted-image.png", ios::in | ios::binary);
+        corrupt_png.read(data.data(), data.size());
 
-    cout << "CORRUPT PNG" << endl;
-    cout << std::string(80, '=') << endl << endl;
-    i = 1;
-    for (const auto& node: nodes) {
-        auto response = node->process_data(data.data(), data.size());
-        if (response.has_value()) {
-            cout << dec << i << hex << ")\n" << response.value() << endl;
-            cout << endl << std::string(80, '=') << endl << endl;
+        cout << "CORRUPT PNG" << endl;
+        cout << std::string(80, '=') << endl << endl;
+        size_t i = 1;
+        for (const auto& node: nodes) {
+            auto response = node->process_data(data.data(), data.size());
+            if (response.has_value()) {
+                cout << dec << i << hex << ")\n" << response.value() << endl;
+                cout << endl << std::string(80, '=') << endl << endl;
+                break;
+            }
+            ++i;
         }
-        ++i;
     }
-
 
     return 0;
 }

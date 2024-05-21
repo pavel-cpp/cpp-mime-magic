@@ -8,13 +8,14 @@
 
 #include <variant>
 
+
 namespace magic {
 
 
     class numeric_node final : public basic_mime_node {
         public:
 
-            using types = std::variant<
+            using type = std::variant<
                     uint8_t,
                     int16_t,
                     uint16_t,
@@ -23,8 +24,8 @@ namespace magic {
             >;
 
             struct data_template {
-                types value {};
-                types mask {~0};
+                type value {};
+                type mask {~0};
                 operands operand {operands::equal};
                 std::function<void(char * , size_t)> normalize_byte_order;
             };
@@ -47,10 +48,12 @@ namespace magic {
 
         private:
 
-            types value_ {};
-            types mask_ {~0};
+            type value_ {};
+            type mask_ {~0};
             operands operand_ {operands::equal};
             std::function<void(char * , size_t)> normalize_byte_order_;
+
+        private:
 
             bool is_enough_data(size_t size) override {
                 int size_of_type;
@@ -68,7 +71,7 @@ namespace magic {
             }
 
             response_t process_current(const char *data, size_t size) override {
-                types tmp = value_;
+                type tmp = value_;
                 std::visit([&](auto& value) {
                     extract_value(value, data);
                 }, tmp);
@@ -78,7 +81,16 @@ namespace magic {
                 // TODO(pavel-cpp): It may be necessary to do something different for bit operations
                 std::visit(
                         [&](auto value) {
-                            result = utils::format(message_, value);
+                            try {
+                                result = utils::format(message_, value);
+                                if (std::holds_alternative<uint8_t>(value_) && std::get<uint8_t>(value_) == 6) {
+                                    throw std::exception();
+                                }
+                            } catch (std::exception) {
+                                std::string tmp = utils::format(message_, value);
+
+                                int a;
+                            }
                         },
                         tmp
                 );
