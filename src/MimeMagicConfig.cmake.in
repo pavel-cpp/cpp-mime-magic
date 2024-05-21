@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+include("${CMAKE_CURRENT_LIST_DIR}/MimeMagicTargets.cmake")
+
+set(MimeMagic_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../../../include" CACHE PATH "Path to MimeMagic include directory" FORCE)
+
+include_directories(
+        ${MimeMagic_INCLUDE_DIRS}
+        ${MimeMagic_INCLUDE_DIRS}/loader
+        ${MimeMagic_INCLUDE_DIRS}/nodes
+)

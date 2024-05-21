@@ -4,6 +4,8 @@
 #include <vector>
 #include <chrono>
 
+#include "loader/mime_loader.h"
+
 class Timer {
     public:
         Timer() {
@@ -20,28 +22,22 @@ class Timer {
         std::chrono::time_point<std::chrono::high_resolution_clock> start;
 };
 
-#include "loader/mime_loader.h"
-
 int main() {
     using namespace std;
     boolalpha(cout);
     system("chcp 1251");
 
     magic::mime_list nodes;
+//    You can check how it fast
 //    {
 //        Timer t;
 //        nodes = std::move(magic::load("C:\\Sophus-NEW\\modules\\files.etl"));
 //    }
 
-//    nodes = magic::load("files.etl");
     nodes = magic::load("magic.etl");
 
     cout << nodes.size() << " node workers SUCCESSFULLY LOADED!" << endl;
-//    system("pause");
 
-//    string str {"HelloWorld"};
-//
-//    vector<char> data {'H', 'e', 'l', 'l', 'o', 'W', 'o', 'r', 'l', 'd', static_cast<char>(0xFF), static_cast<char>(0xFF)};
     vector<char> data;
     data.resize(30);
 
