@@ -84,32 +84,24 @@ char parse_escape(char c) {
     using namespace std::literals;
 
     switch (c) {
-        case '\'':
-            return '\'';
-        case '\"':
-            return '\"';
-        case '\?':
-            return '\?';
-        case 'a':
-            return '\a';
-        case 'b':
-            return '\b';
-        case 'f':
-            return '\f';
-        case 'n':
-            return '\n';
-        case 'r':
-            return '\r';
-        case 't':
-            return '\t';
-        case 'v':
-            return '\v';
-        case '\\':
-            return '\\';
-        case '0':
-            return '\0';
-        case ' ':
-            return ' ';
+        case '\'': return '\'';
+        case '\"': return '\"';
+        case '\?': return '\?';
+        case 'a': return '\a';
+        case 'b': return '\b';
+        case 'f': return '\f';
+        case 'n': return '\n';
+        case 'r': return '\r';
+        case 't': return '\t';
+        case 'v': return '\v';
+        case '\\': return '\\';
+        case '0': return '\0';
+        case ' ': return ' ';
+        case '=': return '=';
+        case '!': return '!';
+        case '<': return '<';
+        case '>': return '>';
+        case 'x': return 'x';
         default:
             throw std::runtime_error{
                 "Syntax error: Invalid escape sequence\n"
@@ -122,6 +114,7 @@ char parse_escape(char c) {
 string parse_string(string_view line) {
     remove_operands(line, "=!<>x");
     string result;
+
     for (size_t i = 0; i < line.size(); ++i) {
         if (line[i] == '\\') {
             if (line[i + 1] == 'x' || (isdigit(line[i + 1]) && i + 2 < line.size() && line[i + 2] != '\\')) {
@@ -173,14 +166,14 @@ int64_t parse_single_raw_value(string_view raw_value) {
 
 // Supports only minus and plus expressions
 int64_t eval_parse_raw_value(string_view raw_value) {
-    if(raw_value.front() == '(') {
+    if (raw_value.front() == '(') {
         if (raw_value.back() != ')') {
             throw std::runtime_error("Syntax Error: Parenthes error");
         }
         raw_value.remove_prefix(1);
         raw_value.remove_suffix(1);
 
-        size_t operator_pos {raw_value.find('+')};
+        size_t operator_pos{raw_value.find('+')};
         if (operator_pos == string_view::npos) {
             operator_pos = raw_value.find('-');
         }
@@ -189,9 +182,9 @@ int64_t eval_parse_raw_value(string_view raw_value) {
         if (operator_pos == string_view::npos) {
             throw std::runtime_error("Syntax Error: Invalid operator");
         }
-        const int64_t lhs {parse_single_raw_value(raw_value.substr(0, operator_pos))};
-        const int64_t rhs {parse_single_raw_value(raw_value.substr(operator_pos + 1))};
-        if(raw_value[operator_pos] == '+') {
+        const int64_t lhs{parse_single_raw_value(raw_value.substr(0, operator_pos))};
+        const int64_t rhs{parse_single_raw_value(raw_value.substr(operator_pos + 1))};
+        if (raw_value[operator_pos] == '+') {
             return lhs + rhs;
         }
         return lhs - rhs;
@@ -240,11 +233,19 @@ struct node_context {
 };
 
 std::unique_ptr<basic_mime_node> create_string(node_context context, std::string_view raw_type, string_view raw_value) {
+    string_node::options option{string_node::options::none};
+    raw_type.remove_prefix(6); // Removing "string"
+    if (raw_type.front() == '/') {
+        // Parse options
+        if (raw_type.find('c') != string_view::npos) {
+            option = string_node::options::not_case_sensitive;
+        }
+    }
     return std::make_unique<string_node>(
         context.offset,
         string_node::data_template{
             parse_string(raw_value),
-            string_node::options::none,
+            option,
             parse_operand(raw_value)
         },
         context.message,
@@ -419,6 +420,13 @@ std::vector<string_view> split_by_columns(string_view line) {
     return columns;
 }
 
+void remove_all_escapes(std::string& str) {
+    size_t pos{0};
+    while ((pos = str.find('\\', pos)) != std::string::npos) {
+        str.replace(pos, 2, std::string{parse_escape(str[pos + 1]), 1});
+    }
+}
+
 size_t extract_level(string &line) {
     size_t level{0};
     for (char c: line) {
@@ -474,8 +482,11 @@ std::pair<mime_list, bool> load_nodes(std::istream &in, size_t level) {
         }
 
         std::string message{columns[3]};
+        // remove_all_escapes(message);
         if (message.back() == '\r') {
             message.back() = ' ';
+        } else {
+            message.push_back(' ');
         }
 
         auto [children, status] = load_nodes(in, current_level + 1);

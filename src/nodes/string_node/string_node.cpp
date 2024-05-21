@@ -18,7 +18,7 @@ basic_mime_node::response_t string_node::process_current(const char *data, size_
         size = value_.size();
     }
     std::string temp {data, size};
-    if (opt_ == options::case_sensitive) {
+    if (opt_ == options::not_case_sensitive) {
         tolower(temp);
         tolower(value_);
     }

@@ -10,7 +10,7 @@ namespace magic {
 
             enum options {
                 none,
-                case_sensitive
+                not_case_sensitive
             };
 
             struct data_template {

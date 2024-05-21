@@ -13,17 +13,17 @@ namespace magic::utils {
 
     inline std::string format(const std::string& format_s, const std::string& str) {
         std::string out;
-        out.resize(format_s.size(), str.size());
+        out.resize(format_s.size() + str.size());
         sprintf(out.data(), format_s.c_str(), str.c_str());
-        return out;
+        return {out.c_str()};
     }
 
     template<typename Type>
     inline std::string format(const std::string& format_s, Type value) {
         std::string out;
-        out.resize(format_s.size(), 20);
+        out.resize(format_s.size() + 20);
         sprintf(out.data(), format_s.c_str(), value);
-        return out;
+        return {out.c_str()};
     }
 
     template<typename T>
