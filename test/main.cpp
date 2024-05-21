@@ -33,8 +33,8 @@ int main() {
 //        nodes = std::move(magic::load("C:\\Sophus-NEW\\modules\\files.etl"));
 //    }
 
-    nodes = magic::load("files.etl");
-//    nodes = magic::load("magic.etl");
+//    nodes = magic::load("files.etl");
+    nodes = magic::load("magic.etl");
 
     cout << nodes.size() << " node workers SUCCESSFULLY LOADED!" << endl;
 //    system("pause");

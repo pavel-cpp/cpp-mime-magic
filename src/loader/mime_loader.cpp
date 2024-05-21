@@ -167,13 +167,13 @@ int64_t parse_single_raw_value(string_view raw_value) {
 }
 
 // Supports only minus and plus expressions
-int64_t eval_parse_raw_value(string_view raw_value) {
+int64_t parse_raw_value(string_view raw_value) {
     using namespace std::literals;
     if (raw_value.front() == '(') {
         if (raw_value.back() != ')') {
             throw loading_error {
-                current_line,
-                "Parentheses error"s
+                    current_line,
+                    "Parentheses error"s
             };
         }
         raw_value.remove_prefix(1);
@@ -199,43 +199,31 @@ int64_t eval_parse_raw_value(string_view raw_value) {
 }
 
 operands parse_operand(string_view line, string_view required_operands = "") {
-    operands operand = operands::equal;
-    if (line == "x" && required_operands.find('x') != string_view::npos) {
+    if (!required_operands.empty() && required_operands.find(line.front()) == string_view::npos) {
+        return operands::equal;
+    }
+
+    if (line == "x") {
         return operands::any;
     }
     switch (line.front()) {
         case '<':
-            if (required_operands.find('<') != string_view::npos) {
-                operand = operands::less_than;
-            }
+            return operands::less_than;
         case '>':
-            if (required_operands.find('>') != string_view::npos) {
-                operand = operands::greater_than;
-            }
+            return operands::greater_than;
         case '=':
-            if (required_operands.find('=') != string_view::npos) {
-                operand = operands::equal;
-            }
+            return operands::equal;
         case '!':
-            if (required_operands.find('!') != string_view::npos) {
-                operand = operands::not_equal;
-            }
+            return operands::not_equal;
         case '&':
-            if (required_operands.find('&') != string_view::npos) {
-                operand = operands::bit_and;
-            }
+            return operands::bit_and;
         case '|':
-            if (required_operands.find('|') != string_view::npos) {
-                operand = operands::bit_or;
-            }
+            return operands::bit_or;
         case '^':
-            if (required_operands.find('^') != string_view::npos) {
-                operand = operands::bit_xor;
-            }
+            return operands::bit_xor;
         default:
-            operand = operands::equal;
+            return operands::equal;
     }
-    return operand;
 }
 
 struct node_context {
@@ -287,7 +275,7 @@ std::unique_ptr<basic_mime_node> create_date(node_context context, std::string_v
     }
     data.operand = parse_operand(raw_value, "=!<>x");
     remove_operands(raw_value, "=!<>x");
-    data.value = eval_parse_raw_value(raw_value);
+    data.value = parse_raw_value(raw_value);
     return std::make_unique<date_node>(
             context.offset,
             data,
@@ -311,7 +299,7 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
             raw_type.remove_suffix(raw_type.size() - mask_pos);
         }
         if (!tmp_mask.empty()) {
-            mask = eval_parse_raw_value(tmp_mask);
+            mask = parse_raw_value(tmp_mask);
         }
     }
 
@@ -325,7 +313,7 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
         return std::make_unique<numeric_node>(
                 context.offset,
                 numeric_node::data_template {
-                        static_cast<uint8_t>(eval_parse_raw_value(raw_value)),
+                        static_cast<uint8_t>(parse_raw_value(raw_value)),
                         static_cast<uint8_t>(mask),
                         operand,
                         byte_order_normalizer
@@ -349,18 +337,18 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
 
     if (raw_type == "short") {
         if (sign) {
-            final_value = static_cast<int16_t>(eval_parse_raw_value(raw_value));
+            final_value = static_cast<int16_t>(parse_raw_value(raw_value));
             final_mask = static_cast<int16_t>(mask);
         } else {
-            final_value = static_cast<uint16_t>(eval_parse_raw_value(raw_value));
+            final_value = static_cast<uint16_t>(parse_raw_value(raw_value));
             final_mask = static_cast<uint16_t>(mask);
         }
     } else if (raw_type == "long") {
         if (sign) {
-            final_value = static_cast<int32_t>(eval_parse_raw_value(raw_value));
+            final_value = static_cast<int32_t>(parse_raw_value(raw_value));
             final_mask = static_cast<int32_t>(mask);
         } else {
-            final_value = static_cast<uint32_t>(eval_parse_raw_value(raw_value));
+            final_value = static_cast<uint32_t>(parse_raw_value(raw_value));
             final_mask = static_cast<uint32_t>(mask);
         }
     } else {
@@ -432,9 +420,9 @@ std::vector<string_view> split_by_columns(string_view line) {
     }
 
     if (columns.size() != 3) {
-        throw loading_error{
-            current_line,
-            "Missing columns"s
+        throw loading_error {
+                current_line,
+                "Missing columns"s
         };
     }
 
@@ -514,12 +502,12 @@ loading_result load_nodes(std::istream& in, size_t level) {
         }
 
         std::string message {columns[3]};
-        // remove_all_escapes(message);
-        if (message.back() == '\r') {
-            message.back() = ' ';
-        } else {
-            message.push_back(' ');
-        }
+//        remove_all_escapes(message);
+//        if (message.back() == '\r') {
+//            message.back() = ' ';
+//        } else {
+//            message.push_back(' ');
+//        }
 
         auto [children, status] = load_nodes(in, current_level + 1);
         result.status = status;
@@ -527,7 +515,7 @@ loading_result load_nodes(std::istream& in, size_t level) {
         result.nodes.emplace_back(std::move(
                 create(
                         {
-                                static_cast<size_t>(eval_parse_raw_value(columns[0])),
+                                static_cast<size_t>(parse_raw_value(columns[0])),
                                 message,
                                 std::move(children)
                         },
