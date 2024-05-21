@@ -16,6 +16,7 @@ add_library(
         src/nodes/basic_mime_node.cpp
         src/nodes/date_node/date_node.cpp
         src/nodes/string_node/string_node.cpp
+        src/loader/loading_error.h
 )
 
 add_executable(
