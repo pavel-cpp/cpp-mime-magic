@@ -20,7 +20,7 @@ basic_mime_node::response_t date_node::process_current(const char *data, size_t 
         case operands::less_than: return tmp < value_ ? response_t { result } : std::nullopt;
         case operands::greater_than: return tmp > value_ ? response_t { result } : std::nullopt;
         default:
-            throw 1; // TODO(pavel-cpp): Дописать нормальное исключение
+            throw std::invalid_argument("Unknown operand");
     }
     return std::nullopt;
 }

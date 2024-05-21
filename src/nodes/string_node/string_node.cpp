@@ -26,11 +26,10 @@ basic_mime_node::response_t string_node::process_current(const char *data, size_
     switch (operand_) {
         case operands::any:             return result;
         case operands::equal:           return temp == value_ ? response_t {message_} : std::nullopt;
-        case operands::not_equal:       return temp != value_ ? response_t {message_} : std::nullopt;
         case operands::less_than:       return temp < value_ ? response_t {message_} : std::nullopt;
         case operands::greater_than:    return temp > value_ ? response_t {message_} : std::nullopt;
         default:
-            throw 1; // TODO(pavel-cpp): Дописать нормальное исключение
+            throw std::invalid_argument("Unknown operand");
     }
     return std::nullopt;
 }

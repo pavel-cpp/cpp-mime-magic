@@ -3,6 +3,7 @@
 #include "nodes/date_node/date_node.h"
 #include "nodes/numeric_node/numeric_node.h"
 #include "nodes/string_node/string_node.h"
+#include "loading_error.h"
 
 #include <sstream>
 #include <vector>
@@ -16,26 +17,9 @@ using std::string_view;
 
 using namespace magic;
 
-class line_counter {
-public:
-    operator string() {
-        return cnt_view;
-    }
+size_t current_line;
 
-    string operator++() {
-        return cnt_view = std::to_string(++line_cnt);
-    }
-
-    string operator--() {
-        return cnt_view = std::to_string(--line_cnt);
-    }
-
-private:
-    size_t line_cnt{};
-    string cnt_view{'0'};
-} current_line;
-
-void remove_operands(string_view &value, string_view operands) {
+void remove_operands(string_view& value, string_view operands) {
     for (char c: operands) {
         if (c == 'x' && value == "x") {
             value.remove_prefix(1);
@@ -59,10 +43,10 @@ char parse_symcode(string_view line) {
         return std::stoi(string(line.substr(1)));
     }
 
-    throw std::runtime_error{
-        "Syntax error: Invalid symbol code\n"
-        "In line: "s + string(current_line) + "\n"
-        + "\tCode: "s + line[0]
+    throw loading_error {
+            current_line,
+            "Invalid symbol code"s,
+            std::string {1, line[0]}
     };
 }
 
@@ -73,46 +57,64 @@ char parse_symcode(string_view line) {
  * \c
  * TODO(Pavel): Add operands
  */
-const std::unordered_set<char> escape{
-    '\'', '\"', '\?',
-    'a', 'b', 'f',
-    'n', 'r', 't',
-    'v', '\\', '0'
+const std::unordered_set<char> escape {
+        '\'', '\"', '\?',
+        'a', 'b', 'f',
+        'n', 'r', 't',
+        'v', '\\', '0',
+        ' ', '=', '>',
+        '<', 'x'
 };
 
 char parse_escape(char c) {
     using namespace std::literals;
 
     switch (c) {
-        case '\'': return '\'';
-        case '\"': return '\"';
-        case '\?': return '\?';
-        case 'a': return '\a';
-        case 'b': return '\b';
-        case 'f': return '\f';
-        case 'n': return '\n';
-        case 'r': return '\r';
-        case 't': return '\t';
-        case 'v': return '\v';
-        case '\\': return '\\';
-        case '0': return '\0';
-        case ' ': return ' ';
-        case '=': return '=';
-        case '!': return '!';
-        case '<': return '<';
-        case '>': return '>';
-        case 'x': return 'x';
+        case '\'':
+            return '\'';
+        case '\"':
+            return '\"';
+        case '\?':
+            return '\?';
+        case 'a':
+            return '\a';
+        case 'b':
+            return '\b';
+        case 'f':
+            return '\f';
+        case 'n':
+            return '\n';
+        case 'r':
+            return '\r';
+        case 't':
+            return '\t';
+        case 'v':
+            return '\v';
+        case '\\':
+            return '\\';
+        case '0':
+            return '\0';
+        case ' ':
+            return ' ';
+        case '=':
+            return '=';
+        case '<':
+            return '<';
+        case '>':
+            return '>';
+        case 'x':
+            return 'x';
         default:
-            throw std::runtime_error{
-                "Syntax error: Invalid escape sequence\n"
-                "In line: "s + string(current_line) + "\n"s
-                + "\tSequence: \\"s + c
+            throw loading_error {
+                    current_line,
+                    "Invalid escape sequence"s,
+                    "\\"s + c
             };
     }
 }
 
 string parse_string(string_view line) {
-    remove_operands(line, "=!<>x");
+    remove_operands(line, "=<>x");
     string result;
 
     for (size_t i = 0; i < line.size(); ++i) {
@@ -150,10 +152,10 @@ int64_t parse_single_raw_value(string_view raw_value) {
         if (raw_value[1] == 'x') {
             return std::stoll(string(raw_value), nullptr, 16);
         }
-        throw std::runtime_error{
-            "Syntax error: Invalid value\n"
-            "In line: "s + string(current_line)
-            + "\tValue: "s + string(raw_value)
+        throw loading_error {
+                current_line,
+                "Invalid value"s,
+                " value = {"s + string(raw_value) + '}'
         };
     }
 
@@ -166,24 +168,28 @@ int64_t parse_single_raw_value(string_view raw_value) {
 
 // Supports only minus and plus expressions
 int64_t eval_parse_raw_value(string_view raw_value) {
+    using namespace std::literals;
     if (raw_value.front() == '(') {
         if (raw_value.back() != ')') {
-            throw std::runtime_error("Syntax Error: Parenthes error");
+            throw loading_error {
+                current_line,
+                "Parentheses error"s
+            };
         }
         raw_value.remove_prefix(1);
         raw_value.remove_suffix(1);
 
-        size_t operator_pos{raw_value.find('+')};
+        size_t operator_pos {raw_value.find('+')};
         if (operator_pos == string_view::npos) {
             operator_pos = raw_value.find('-');
         }
 
         // If operator not found
         if (operator_pos == string_view::npos) {
-            throw std::runtime_error("Syntax Error: Invalid operator");
+            parse_single_raw_value(raw_value);
         }
-        const int64_t lhs{parse_single_raw_value(raw_value.substr(0, operator_pos))};
-        const int64_t rhs{parse_single_raw_value(raw_value.substr(operator_pos + 1))};
+        const int64_t lhs {parse_single_raw_value(raw_value.substr(0, operator_pos))};
+        const int64_t rhs {parse_single_raw_value(raw_value.substr(operator_pos + 1))};
         if (raw_value[operator_pos] == '+') {
             return lhs + rhs;
         }
@@ -192,48 +198,64 @@ int64_t eval_parse_raw_value(string_view raw_value) {
     return parse_single_raw_value(raw_value);
 }
 
-operands parse_operand(string_view line) {
-    if (line == "x") {
+operands parse_operand(string_view line, string_view required_operands = "") {
+    operands operand = operands::equal;
+    if (line == "x" && required_operands.find('x') != string_view::npos) {
         return operands::any;
     }
     switch (line.front()) {
         case '<':
-            return operands::less_than;
+            if (required_operands.find('<') != string_view::npos) {
+                operand = operands::less_than;
+            }
         case '>':
-            return operands::greater_than;
+            if (required_operands.find('>') != string_view::npos) {
+                operand = operands::greater_than;
+            }
         case '=':
-            return operands::equal;
+            if (required_operands.find('=') != string_view::npos) {
+                operand = operands::equal;
+            }
         case '!':
-            return operands::not_equal;
+            if (required_operands.find('!') != string_view::npos) {
+                operand = operands::not_equal;
+            }
         case '&':
-            return operands::bit_and;
+            if (required_operands.find('&') != string_view::npos) {
+                operand = operands::bit_and;
+            }
         case '|':
-            return operands::bit_or;
+            if (required_operands.find('|') != string_view::npos) {
+                operand = operands::bit_or;
+            }
         case '^':
-            return operands::bit_xor;
+            if (required_operands.find('^') != string_view::npos) {
+                operand = operands::bit_xor;
+            }
         default:
-            return operands::equal;
+            operand = operands::equal;
     }
+    return operand;
 }
 
 struct node_context {
-    size_t offset{};
-    std::string message{};
-    mime_list mimes{};
+    size_t offset {};
+    std::string message {};
+    mime_list mimes {};
 
     node_context() = default;
 
-    node_context(size_t offset, std::string message, mime_list &&mimes) : offset(offset), message(message),
+    node_context(size_t offset, std::string message, mime_list&& mimes) : offset(offset), message(message),
                                                                           mimes(std::move(mimes)) {
     }
 
-    node_context(const node_context &) = delete;
+    node_context(const node_context&) = delete;
 
-    node_context(node_context &&) = default;
+    node_context(node_context&&) = default;
 };
 
 std::unique_ptr<basic_mime_node> create_string(node_context context, std::string_view raw_type, string_view raw_value) {
-    string_node::options option{string_node::options::none};
+    string_node::options option {string_node::options::none};
     raw_type.remove_prefix(6); // Removing "string"
     if (raw_type.front() == '/') {
         // Parse options
@@ -241,15 +263,16 @@ std::unique_ptr<basic_mime_node> create_string(node_context context, std::string
             option = string_node::options::not_case_sensitive;
         }
     }
+
     return std::make_unique<string_node>(
-        context.offset,
-        string_node::data_template{
-            parse_string(raw_value),
-            option,
-            parse_operand(raw_value)
-        },
-        context.message,
-        std::move(context.mimes)
+            context.offset,
+            string_node::data_template {
+                    parse_string(raw_value),
+                    option,
+                    parse_operand(raw_value, "=<>x")
+            },
+            context.message,
+            std::move(context.mimes)
     );
 }
 
@@ -257,19 +280,19 @@ std::unique_ptr<basic_mime_node> create_date(node_context context, std::string_v
     using namespace std::literals;
     date_node::data_template data;
     if (raw_type.substr(2) == "be"sv
-    ) {
+            ) {
         data.normalize_byte_order = utils::change_order<time_t>;
     } else {
         data.normalize_byte_order = [](auto val) { return val; };
     }
-    data.operand = parse_operand(raw_value);
+    data.operand = parse_operand(raw_value, "=!<>x");
     remove_operands(raw_value, "=!<>x");
     data.value = eval_parse_raw_value(raw_value);
     return std::make_unique<date_node>(
-        context.offset,
-        data,
-        context.message,
-        std::move(context.mimes)
+            context.offset,
+            data,
+            context.message,
+            std::move(context.mimes)
     );
 }
 
@@ -279,7 +302,8 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
     operands operand = parse_operand(raw_value);
     remove_operands(raw_value, "=!<>&|^x");
 
-    uint64_t mask{~0ull}; {
+    uint64_t mask {~0ull};
+    {
         size_t mask_pos = raw_type.find('&');
         string tmp_mask;
         if (mask_pos != string_view::npos) {
@@ -297,17 +321,17 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
     };
 
     if (raw_type == "byte"sv
-    ) {
+            ) {
         return std::make_unique<numeric_node>(
-            context.offset,
-            numeric_node::data_template{
-                static_cast<uint8_t>(eval_parse_raw_value(raw_value)),
-                static_cast<uint8_t>(mask),
-                operand,
-                byte_order_normalizer
-            },
-            context.message,
-            std::move(context.mimes)
+                context.offset,
+                numeric_node::data_template {
+                        static_cast<uint8_t>(eval_parse_raw_value(raw_value)),
+                        static_cast<uint8_t>(mask),
+                        operand,
+                        byte_order_normalizer
+                },
+                context.message,
+                std::move(context.mimes)
         );
     }
 
@@ -340,22 +364,22 @@ create_numeric(node_context context, std::string_view raw_type, string_view raw_
             final_mask = static_cast<uint32_t>(mask);
         }
     } else {
-        throw std::runtime_error{
-            "Tyta Syntax Error: Unknown type\n"s +
-            "In line: " + std::string(current_line) + "\n" +
-            "Type: " + std::string(raw_type)
+        throw loading_error {
+                current_line,
+                "Unknown type"s,
+                "raw_type = " + std::string {raw_type}
         };
     }
     return std::make_unique<numeric_node>(
-        context.offset,
-        numeric_node::data_template{
-            final_value,
-            final_mask,
-            operand,
-            byte_order_normalizer
-        },
-        context.message,
-        std::move(context.mimes)
+            context.offset,
+            numeric_node::data_template {
+                    final_value,
+                    final_mask,
+                    operand,
+                    byte_order_normalizer
+            },
+            context.message,
+            std::move(context.mimes)
     );
 }
 
@@ -371,17 +395,17 @@ std::unique_ptr<basic_mime_node> create(node_context context, std::string_view r
     }
 
     if (
-        raw_type.find("byte") != string_view::npos
-        || raw_type.find("short") != string_view::npos
-        || raw_type.find("long") != string_view::npos
-    ) {
+            raw_type.find("byte") != string_view::npos
+            || raw_type.find("short") != string_view::npos
+            || raw_type.find("long") != string_view::npos
+            ) {
         return create_numeric(std::move(context), raw_type, raw_value);
     }
 
-    throw std::runtime_error{
-        "Zdesya Syntax Error: Unknown type\n"s +
-        "In line: " + std::string(current_line) + "\n" +
-        "Type: " + std::string(raw_type)
+    throw loading_error {
+            current_line,
+            "Unknown type"s,
+            " raw_type = {" + std::string(raw_type) + '}'
     };
 }
 
@@ -408,7 +432,10 @@ std::vector<string_view> split_by_columns(string_view line) {
     }
 
     if (columns.size() != 3) {
-        throw std::runtime_error{"Syntax Error"}; // TODO(Pavel): Write reason
+        throw loading_error{
+            current_line,
+            "Missing columns"s
+        };
     }
 
     if (left < line.end()) {
@@ -421,14 +448,14 @@ std::vector<string_view> split_by_columns(string_view line) {
 }
 
 void remove_all_escapes(std::string& str) {
-    size_t pos{0};
+    size_t pos {0};
     while ((pos = str.find('\\', pos)) != std::string::npos) {
-        str.replace(pos, 2, std::string{parse_escape(str[pos + 1]), 1});
+        str.replace(pos, 2, std::string {parse_escape(str[pos + 1]), 1});
     }
 }
 
-size_t extract_level(string &line) {
-    size_t level{0};
+size_t extract_level(string& line) {
+    size_t level {0};
     for (char c: line) {
         if (c != '>') {
             break;
@@ -439,13 +466,18 @@ size_t extract_level(string &line) {
     return level;
 }
 
-std::pair<mime_list, bool> load_nodes(std::istream &in, size_t level) {
+struct loading_result {
+    mime_list nodes {};
+    bool status {false};
+};
+
+loading_result load_nodes(std::istream& in, size_t level) {
     using namespace std::literals;
+
     string line;
     std::getline(in, line);
 
-    mime_list current_level_nodes;
-    bool end_of_node = false;
+    loading_result result;
 
     do {
         ++current_line;
@@ -453,35 +485,35 @@ std::pair<mime_list, bool> load_nodes(std::istream &in, size_t level) {
             || line.size() <= 1
             || line.front() == '\n'
             || line.front() == '\r'
-        ) {
+                ) {
             continue;
         }
 
         size_t current_level = extract_level(line);
         if (current_level > level) {
-            throw std::runtime_error{
-                "Syntax error: Invalid level\n"
-                "In line: "s + string(current_line)
+            throw loading_error {
+                    current_line,
+                    "Invalid level"s
             };
         }
         if (current_level < level) {
             in.seekg(-static_cast<int64_t>(current_level + line.size() + 1), std::istream::cur);
             --current_line;
             if (current_level == 0) {
-                return {std::move(mime_list{}), true};
+                return {std::move(mime_list {}), true};
             }
             break;
         }
 
-        auto columns{split_by_columns(line)};
+        auto columns {split_by_columns(line)};
         if (columns.size() < 4) {
-            throw std::runtime_error{
-                "Syntax error: Invalid number of columns\n"
-                "In line: "s + string(current_line)
+            throw loading_error {
+                    current_line,
+                    "Invalid number of columns"s
             };
         }
 
-        std::string message{columns[3]};
+        std::string message {columns[3]};
         // remove_all_escapes(message);
         if (message.back() == '\r') {
             message.back() = ' ';
@@ -490,25 +522,25 @@ std::pair<mime_list, bool> load_nodes(std::istream &in, size_t level) {
         }
 
         auto [children, status] = load_nodes(in, current_level + 1);
-        end_of_node = status;
+        result.status = status;
         // Create a new node
-        current_level_nodes.emplace_back(std::move(
+        result.nodes.emplace_back(std::move(
                 create(
-                    {
-                        static_cast<size_t>(eval_parse_raw_value(columns[0])),
-                        message,
-                        std::move(children)
-                    },
-                    columns[1],
-                    columns[2]
+                        {
+                                static_cast<size_t>(eval_parse_raw_value(columns[0])),
+                                message,
+                                std::move(children)
+                        },
+                        columns[1],
+                        columns[2]
                 ))
         );
-    } while (!end_of_node && std::getline(in, line));
+    } while (!result.status && std::getline(in, line));
 
-    return {std::move(current_level_nodes), end_of_node};
+    return result;
 }
 
-mime_list magic::load(std::istream &in) {
+mime_list magic::load(std::istream& in) {
     string buffer;
 
     mime_list nodes;
@@ -518,10 +550,12 @@ mime_list magic::load(std::istream &in) {
             continue;
         }
         in.seekg(-static_cast<int64_t>(buffer.size() + 1), std::istream::cur);
-        //                                                                    First is a result
-        //                                                                           |
-        mime_list mimes{std::move(load_nodes(in, 0).first)};
+        mime_list mimes {std::move(load_nodes(in, 0).nodes)};
         if (mimes.empty()) {
+            continue;
+        }
+        if (mimes.size() == 1) {
+            nodes.emplace_back(std::move(mimes.back()));
             continue;
         }
         nodes.emplace_back(std::make_unique<basic_mime_node>(0, "", std::move(mimes)));
@@ -530,7 +564,7 @@ mime_list magic::load(std::istream &in) {
     return std::move(nodes);
 }
 
-mime_list magic::load(const string &filename) {
-    std::ifstream file{filename, std::ios::in | std::ios::binary};
+mime_list magic::load(const string& filename) {
+    std::ifstream file {filename, std::ios::in | std::ios::binary};
     return std::move(load(file));
 }

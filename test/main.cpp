@@ -32,9 +32,9 @@ int main() {
 //        Timer t;
 //        nodes = std::move(magic::load("C:\\Sophus-NEW\\modules\\files.etl"));
 //    }
-    ifstream file("magic.etl", ios::in | ios::binary);
 
-    nodes = magic::load(file);
+    nodes = magic::load("files.etl");
+//    nodes = magic::load("magic.etl");
 
     cout << nodes.size() << " node workers SUCCESSFULLY LOADED!" << endl;
 //    system("pause");
@@ -54,27 +54,25 @@ int main() {
     for (const auto& node: nodes) {
         auto response = node->process_data(data.data(), data.size());
         if (response.has_value()) {
-            cout << dec << i++ << hex << ")\n" << response.value() << endl;
-        } else {
-            cout << dec << i++ << hex << ")\n" << response.has_value() << endl;
+            cout << dec << i << hex << ")\n" << response.value() << endl;
+            cout << endl << std::string(80, '=') << endl << endl;
         }
-        cout << endl << std::string(80, '=') << endl << endl;
+        ++i;
     }
 
     ifstream corrupt_png("corrupted-image.png", ios::in | ios::binary);
     corrupt_png.read(data.data(), data.size());
 
-    cout << "JPEG" << endl;
+    cout << "CORRUPT PNG" << endl;
     cout << std::string(80, '=') << endl << endl;
     i = 1;
     for (const auto& node: nodes) {
         auto response = node->process_data(data.data(), data.size());
         if (response.has_value()) {
-            cout << dec << i++ << hex << ")\n" << response.value() << endl;
-        } else {
-            cout << dec << i++ << hex << ")\n" << response.has_value() << endl;
+            cout << dec << i << hex << ")\n" << response.value() << endl;
+            cout << endl << std::string(80, '=') << endl << endl;
         }
-        cout << endl << std::string(80, '=') << endl << endl;
+        ++i;
     }
 
 
