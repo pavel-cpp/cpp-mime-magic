@@ -94,5 +94,5 @@ void test_all() {
 int main() {
     test_all();
     cerr << "All tests passed" << endl;
-    return 1;
+    return 0;
 }
