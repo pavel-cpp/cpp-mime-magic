@@ -15,7 +15,7 @@ REM Putting the project together
 cmake --build build
 
 REM Install the project
-cmake --install build --prefix %INSTALLATION_PATH% %SILENT_FLAG%
+cmake --install build --prefix %INSTALLATION_PATH%
 
 rmdir /s /q build
 
