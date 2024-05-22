@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <fstream>
 #include <variant>
+#include <stdexcept>
 
 using std::string;
 using std::string_view;
@@ -169,6 +170,7 @@ int64_t parse_single_raw_value(string_view raw_value) {
 // Supports only minus and plus expressions
 int64_t parse_raw_value(string_view raw_value) {
     using namespace std::literals;
+    try {
     if (raw_value.front() == '(') {
         if (raw_value.back() != ')') {
             throw loading_error {
@@ -196,6 +198,14 @@ int64_t parse_raw_value(string_view raw_value) {
         return lhs - rhs;
     }
     return parse_single_raw_value(raw_value);
+
+    } catch (std::invalid_argument& e) {
+        throw loading_error {
+            current_line,
+            "Invalid date value"s,
+            "raw_value = " + std::string {raw_value}
+        };
+    }
 }
 
 operands parse_operand(string_view line, string_view required_operands = "") {

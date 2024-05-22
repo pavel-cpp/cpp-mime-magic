@@ -10,7 +10,7 @@ add_custom_target(copy_docs
 
 add_custom_target(copy_examples
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples ${CMAKE_BINARY_DIR}/examples
-        COMMENT "Copying documentation"
+        COMMENT "Copying examples"
 )
 
 add_dependencies(MimeMagic_shared copy_docs)
