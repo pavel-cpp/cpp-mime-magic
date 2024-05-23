@@ -10,7 +10,7 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -69,6 +69,20 @@ jobs:
           name: build-artifacts-${{ matrix.os }}-${{ matrix.compiler }}
           path: ${{ github.workspace }}/mime_magic
 
+  test:
+    runs-on: ${{ matrix.os }}
+    needs: build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        compiler: [gcc, clang, msvc2019]
+        exclude:
+          - os: ubuntu-latest
+            compiler: msvc2019
+
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
         with:
@@ -92,7 +106,7 @@ jobs:
 
   send_message:
     runs-on: ubuntu-latest
-    needs: build-and-test
+    needs: test
     steps:
       - name: Send telegram message
         uses: appleboy/telegram-action@master
