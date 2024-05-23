@@ -10,7 +10,7 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -19,10 +19,6 @@ jobs:
         exclude:
           - os: ubuntu-latest
             compiler: msvc2019
-          - os: windows-latest
-            compiler: gcc
-          - os: windows-latest
-            compiler: clang
 
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +35,15 @@ jobs:
           fi
         shell: bash
 
+      - name: Set up MSYS2
+        if: matrix.os == 'windows-latest' && matrix.compiler != 'msvc2019'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: >
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-clang
+
       - name: Set up MSVC
         if: matrix.os == 'windows-latest' && matrix.compiler == 'msvc2019'
         uses: ilammy/msvc-dev-cmd@v1
@@ -46,7 +51,8 @@ jobs:
           arch: x64
 
       - name: Configure CMake
-        run: cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -B build
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -B build -G "${{ matrix.os == 'windows-latest' && matrix.compiler == 'msvc2019' && 'Visual Studio 16 2019' || 'Unix Makefiles' }}"
         shell: bash
 
       - name: Build with CMake
@@ -62,24 +68,6 @@ jobs:
         with:
           name: build-artifacts-${{ matrix.os }}-${{ matrix.compiler }}
           path: ${{ github.workspace }}/mime_magic
-
-  tests:
-    runs-on: ${{ matrix.os }}
-    needs: build
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        compiler: [gcc, clang, msvc2019]
-        exclude:
-          - os: windows-latest
-            compiler: gcc
-          - os: windows-latest
-            compiler: clang
-          - os: ubuntu-latest
-            compiler: msvc2019
-
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
@@ -104,7 +92,7 @@ jobs:
 
   send_message:
     runs-on: ubuntu-latest
-    needs: tests
+    needs: build-and-test
     steps:
       - name: Send telegram message
         uses: appleboy/telegram-action@master
