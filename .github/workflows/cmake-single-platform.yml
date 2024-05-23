@@ -93,15 +93,15 @@ jobs:
         shell: cmd
 
       - name: Configure CMake
-        run: cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -B build -G "Visual Studio 16 2019"
+        run: cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -B ${{ github.workspace }}/build -G "Visual Studio 16 2019"
         shell: cmd
 
       - name: Build with CMake
-        run: cmake --build build
+        run: cmake --build ${{ github.workspace }}/build
         shell: cmd
 
       - name: Install Library
-        run: cmake --install build --prefix ${{ github.workspace }}/mime_magic
+        run: cmake --install ${{ github.workspace }}/build --prefix ${{ github.workspace }}/mime_magic
         shell: cmd
 
       - name: Upload Build Artifacts
