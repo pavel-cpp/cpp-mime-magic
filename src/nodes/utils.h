@@ -14,7 +14,7 @@ namespace magic::utils {
     inline std::string format(const std::string& format_s, const std::string& str) {
         std::string out;
         out.resize(format_s.size() + str.size());
-        sprintf(out.data(), format_s.c_str(), str.c_str());
+        snprintf(out.data(), out.size(), format_s.c_str(), str.c_str());
         return {out.c_str()};
     }
 
@@ -22,7 +22,7 @@ namespace magic::utils {
     inline std::string format(const std::string& format_s, Type value) {
         std::string out;
         out.resize(format_s.size() + 20);
-        sprintf(out.data(), format_s.c_str(), value);
+        snprintf(out.data(), out.size(), format_s.c_str(), value);
         return {out.c_str()};
     }
 

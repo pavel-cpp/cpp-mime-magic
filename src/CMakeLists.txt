@@ -18,6 +18,7 @@ add_library(
         nodes/basic_mime_node.cpp
         nodes/date_node/date_node.cpp
         nodes/string_node/string_node.cpp
+        nodes/numeric_node/numeric_node.cpp
 )
 
 add_library(
@@ -27,6 +28,7 @@ add_library(
         nodes/basic_mime_node.cpp
         nodes/date_node/date_node.cpp
         nodes/string_node/string_node.cpp
+        nodes/numeric_node/numeric_node.cpp
 )
 
 # Installing libraries and headers
