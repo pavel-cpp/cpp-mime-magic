@@ -84,8 +84,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up MSVC
-        uses: microsoft/setup-msbuild@v1.0.3
+      - name: Set up Visual Studio
+        uses: microsoft/setup-visual-studio@v1
+        with:
+          vs-version: '16'
+          architecture: 'x64'
 
       - name: Configure CMake
         run: cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -B build -G "Visual Studio 16 2019"
