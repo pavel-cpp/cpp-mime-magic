@@ -84,11 +84,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Visual Studio
-        uses: microsoft/setup-visual-studio@v1
-        with:
-          vs-version: '16'
-          architecture: 'x64'
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name: Install Visual Studio Build Tools
+        run: |
+          choco install visualstudio2019buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --includeOptional --quiet --norestart"
+        shell: cmd
 
       - name: Configure CMake
         run: cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -B build -G "Visual Studio 16 2019"
