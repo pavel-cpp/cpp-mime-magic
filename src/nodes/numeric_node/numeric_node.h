@@ -59,7 +59,7 @@ namespace magic {
                 dst = utils::convert_raw<Type>(tmp.data());
             }
 
-            response_t process_current(const char *data, size_t size) override;
+            response_t process_current(const char *data, size_t) override;
 
     };
 

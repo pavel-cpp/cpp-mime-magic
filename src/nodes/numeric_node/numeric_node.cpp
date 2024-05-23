@@ -12,7 +12,7 @@ numeric_node::numeric_node(size_t offset, const data_template& data, std::string
 }
 
 bool numeric_node::is_enough_data(size_t size) {
-    int size_of_type;
+    size_t  size_of_type;
     std::visit(
         [&](auto t) {
             size_of_type = sizeof(t);
@@ -22,7 +22,7 @@ bool numeric_node::is_enough_data(size_t size) {
     return size_of_type < size;
 }
 
-basic_mime_node::response_t numeric_node::process_current(const char *data, size_t size) {
+basic_mime_node::response_t numeric_node::process_current(const char *data, size_t) {
     type tmp = value_;
     std::visit(
         [&](auto& value) {
@@ -53,37 +53,37 @@ basic_mime_node::response_t numeric_node::process_current(const char *data, size
                 response = std::make_optional(result);
                 break;
             case operands::equal:
-                response = (val & std::get<typeof(val)>(mask_)) == std::get<typeof(val)>(value_)
+                response = (val & std::get<decltype(val)>(mask_)) == std::get<decltype(val)>(value_)
                                ? std::make_optional(result)
                                : std::nullopt;
                 break;
             case operands::not_equal:
-                response = (val & std::get<typeof(val)>(mask_)) != std::get<typeof(val)>(value_)
+                response = (val & std::get<decltype(val)>(mask_)) != std::get<decltype(val)>(value_)
                                ? std::make_optional(result)
                                : std::nullopt;
                 break;
             case operands::less_than:
-                response = (val & std::get<typeof(val)>(mask_)) < std::get<typeof(val)>(value_)
+                response = (val & std::get<decltype(val)>(mask_)) < std::get<decltype(val)>(value_)
                                ? std::make_optional(result)
                                : std::nullopt;
                 break;
             case operands::greater_than:
-                response = (val & std::get<typeof(val)>(mask_)) > std::get<typeof(val)>(value_)
+                response = (val & std::get<decltype(val)>(mask_)) > std::get<decltype(val)>(value_)
                                ? std::make_optional(result)
                                : std::nullopt;
                 break;
             case operands::bit_and:
-                response = (val & std::get<typeof(val)>(mask_)) & std::get<typeof(val)>(value_)
+                response = (val & std::get<decltype(val)>(mask_)) & std::get<decltype(val)>(value_)
                                ? std::make_optional(result)
                                : std::nullopt;
                 break;
             case operands::bit_or:
-                response = (val & std::get<typeof(val)>(mask_)) | std::get<typeof(val)>(value_)
+                response = (val & std::get<decltype(val)>(mask_)) | std::get<decltype(val)>(value_)
                                ? std::make_optional(result)
                                : std::nullopt;
                 break;
             case operands::bit_xor:
-                response = (val & std::get<typeof(val)>(mask_)) ^ std::get<typeof(val)>(value_)
+                response = (val & std::get<decltype(val)>(mask_)) ^ std::get<decltype(val)>(value_)
                                ? std::make_optional(result)
                                : std::nullopt;
                 break;

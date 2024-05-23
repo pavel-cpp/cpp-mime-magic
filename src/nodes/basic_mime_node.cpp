@@ -46,11 +46,11 @@ basic_mime_node::response_t basic_mime_node::process_data(const char *data, size
     return result;
 }
 
-bool basic_mime_node::is_enough_data(size_t size) {
+bool basic_mime_node::is_enough_data(size_t) {
     return true;
 }
 
-basic_mime_node::response_t basic_mime_node::process_current(const char *data, size_t size) {
+basic_mime_node::response_t basic_mime_node::process_current(const char *, size_t) {
     return message_;
 }
 

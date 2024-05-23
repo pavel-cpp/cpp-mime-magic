@@ -37,11 +37,11 @@ char parse_symcode(string_view line) {
     using namespace std::literals;
 
     if (line[1] == 'x') {
-        return std::stoi(string(line.substr(2)), nullptr, 16);
+        return static_cast<char>(std::stoi(string(line.substr(2)), nullptr, 16));
     }
 
     if (isdigit(line[1])) {
-        return std::stoi(string(line.substr(1)));
+        return static_cast<char>(std::stoi(string(line.substr(1))));
     }
 
     throw loading_error {
@@ -171,39 +171,42 @@ int64_t parse_single_raw_value(string_view raw_value) {
 int64_t parse_raw_value(string_view raw_value) {
     using namespace std::literals;
     try {
-    if (raw_value.front() == '(') {
-        if (raw_value.back() != ')') {
-            throw loading_error {
-                    current_line,
-                    "Parentheses error"s
-            };
+        if(raw_value.empty()) {
+            return std::numeric_limits<int64_t>::max();
         }
-        raw_value.remove_prefix(1);
-        raw_value.remove_suffix(1);
+        if (raw_value.front() == '(') {
+            if (raw_value.back() != ')') {
+                throw loading_error {
+                        current_line,
+                        "Parentheses error"s
+                };
+            }
+            raw_value.remove_prefix(1);
+            raw_value.remove_suffix(1);
 
-        size_t operator_pos {raw_value.find('+')};
-        if (operator_pos == string_view::npos) {
-            operator_pos = raw_value.find('-');
-        }
+            size_t operator_pos {raw_value.find('+')};
+            if (operator_pos == string_view::npos) {
+                operator_pos = raw_value.find('-');
+            }
 
-        // If operator not found
-        if (operator_pos == string_view::npos) {
-            parse_single_raw_value(raw_value);
+            // If operator not found
+            if (operator_pos == string_view::npos) {
+                return parse_single_raw_value(raw_value);
+            }
+            const int64_t lhs {parse_single_raw_value(raw_value.substr(0, operator_pos))};
+            const int64_t rhs {parse_single_raw_value(raw_value.substr(operator_pos + 1))};
+            if (raw_value[operator_pos] == '+') {
+                return lhs + rhs;
+            }
+            return lhs - rhs;
         }
-        const int64_t lhs {parse_single_raw_value(raw_value.substr(0, operator_pos))};
-        const int64_t rhs {parse_single_raw_value(raw_value.substr(operator_pos + 1))};
-        if (raw_value[operator_pos] == '+') {
-            return lhs + rhs;
-        }
-        return lhs - rhs;
-    }
-    return parse_single_raw_value(raw_value);
+        return parse_single_raw_value(raw_value);
 
-    } catch (std::invalid_argument& e) {
+    } catch (std::invalid_argument&) {
         throw loading_error {
-            current_line,
-            "Invalid date value"s,
-            "raw_value = " + std::string {raw_value}
+                current_line,
+                "Invalid date value"s,
+                "raw_value = " + std::string {raw_value}
         };
     }
 }
@@ -243,7 +246,7 @@ struct node_context {
 
     node_context() = default;
 
-    node_context(size_t offset, std::string message, mime_list&& mimes) : offset(offset), message(message),
+    node_context(size_t offset, std::string message, mime_list&& mimes) : offset(offset), message(std::move(message)),
                                                                           mimes(std::move(mimes)) {
     }
 
@@ -255,7 +258,7 @@ struct node_context {
 std::unique_ptr<basic_mime_node> create_string(node_context context, std::string_view raw_type, string_view raw_value) {
     string_node::options option {string_node::options::none};
     raw_type.remove_prefix(6); // Removing "string"
-    if (raw_type.front() == '/') {
+    if (!raw_type.empty() && raw_type.front() == '/') {
         // Parse options
         if (raw_type.find('c') != string_view::npos) {
             option = string_node::options::not_case_sensitive;
@@ -413,21 +416,35 @@ std::vector<string_view> split_by_columns(string_view line) {
     std::vector<std::string_view> columns;
     std::string_view::iterator left = line.begin();
     std::string_view::iterator right = std::find_if(left, line.end(), isspace);
+    columns.emplace_back(&(*left), std::distance(left, right));
     while (left != line.end() && columns.size() < 3) {
-        columns.emplace_back(left, std::distance(left, right));
-        left = right;
-        char prev = ' ';
-        left = std::find_if(left, line.end(), [](char c) { return !isspace(c); });
+        left = right + 1;
+        left = std::find_if(
+                left,
+                line.end(),
+                [](char c) {
+                    return !isspace(static_cast<unsigned char>(c));
+                }
+                );
+        if (left == line.end()) {
+            throw loading_error {
+                current_line,
+                "Invalid columns"s
+            };
+        }
+        char prev {' '};
         right = std::find_if(left, line.end(),
                              [&prev](char c) {
-                                 if (isspace(c) && prev != '\\') {
+                                 if (isspace(static_cast<unsigned char>(c)) && prev != '\\') {
                                      prev = c;
                                      return true;
                                  }
                                  prev = c;
                                  return false;
                              });
+        columns.emplace_back(&(*left), std::distance(left, right));
     }
+    left = right;
 
     if (columns.size() != 3) {
         throw loading_error {
@@ -437,7 +454,7 @@ std::vector<string_view> split_by_columns(string_view line) {
     }
 
     if (left < line.end()) {
-        columns.emplace_back(left, std::distance(left, line.end()));
+        columns.emplace_back(&(*left), std::distance(left, line.end()));
     } else {
         columns.emplace_back(""sv);
     }
@@ -479,8 +496,8 @@ loading_result load_nodes(std::istream& in, size_t level) {
 
     do {
         ++current_line;
-        if (line.front() == '#'
-            || line.size() <= 1
+        if (line.empty()
+            || line.front() == '#'
             || line.front() == '\n'
             || line.front() == '\r'
                 ) {
@@ -512,11 +529,13 @@ loading_result load_nodes(std::istream& in, size_t level) {
         }
 
         std::string message {columns[3]};
-        replace_escapes(message);
-        if (message.back() == '\r') {
-            message.back() = ' ';
-        } else if (message.back() != ' ') {
-            message.push_back(' ');
+        if (!message.empty()) {
+            replace_escapes(message);
+            if (message.back() == '\r') {
+                message.back() = ' ';
+            } else if (message.back() != ' ') {
+                message.push_back(' ');
+            }
         }
 
         auto [children, status] = load_nodes(in, current_level + 1);
@@ -549,6 +568,7 @@ mime_list magic::load(std::istream& in) {
         }
         in.seekg(-static_cast<int64_t>(buffer.size() + 1), std::istream::cur);
         mime_list mimes {std::move(load_nodes(in, 0).nodes)};
+
         if (mimes.empty()) {
             continue;
         }

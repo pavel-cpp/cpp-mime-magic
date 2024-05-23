@@ -31,18 +31,17 @@ namespace magic {
             virtual ~basic_mime_node() = default;
 
         protected:
-            std::string message_ {};
+            virtual bool is_enough_data(size_t);
 
-        protected:
-
-            virtual bool is_enough_data(size_t size);
-
-            virtual response_t process_current(const char *data, size_t size);
+            virtual response_t process_current(const char *, size_t);
 
         private:
-
             size_t offset_ {0};
+        protected:
+            std::string message_ {};
+        private:
             mime_list children_ {};
+
 
     };
 

@@ -8,7 +8,7 @@ bool date_node::is_enough_data(size_t size) {
     return sizeof(value_) < size;
 }
 
-basic_mime_node::response_t date_node::process_current(const char *data, size_t size) {
+basic_mime_node::response_t date_node::process_current(const char *data, size_t) {
     time_t tmp = normalize_byte_order_(utils::convert_raw<time_t>(data));
 
     response_t response;

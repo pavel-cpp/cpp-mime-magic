@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(CURRENT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+#set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
+
 include_directories(
         ${CURRENT_DIR}
         ${CURRENT_DIR}/loader
