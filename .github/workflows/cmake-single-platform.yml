@@ -97,7 +97,7 @@ jobs:
         shell: cmd
 
       - name: Build with CMake
-        run: cmake --build ${{ github.workspace }}/build --config ${{ env.BUILD_TYPE }}
+        run: cmake --build   --config ${{ env.BUILD_TYPE }}
         shell: cmd
 
       - name: Install Library
@@ -124,12 +124,12 @@ jobs:
 
       - name: Configure Tests
         working-directory: ${{ github.workspace }}/tests
-        run: cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -B build
+        run: cmake -B build
         shell: cmd
 
       - name: Build Tests
         working-directory: ${{ github.workspace }}/tests
-        run: cmake --build build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
         shell: cmd
 
       - name: Run Tests
