@@ -147,7 +147,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            mime_magic готов к слиянию
+            mime_magic ready to merge
             Выполнил: ${{ github.actor }}
             Сообщение коммита: ${{ github.event.commits[0].message }}
             Ссылка на коммит: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
