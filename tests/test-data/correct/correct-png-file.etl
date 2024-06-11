@@ -1,7 +1,7 @@
 # Png images
 0	string		\x89PNG		%s
 >4	belong		!0x0d0a1a0a	%ld
->4	belong		0x0d0a1a0a  %ld
+>4	belong		01502415012  %ld
 >>16	belong		x		%ld
 >>20	belong		x		%ld
 >>24	byte		x		%d

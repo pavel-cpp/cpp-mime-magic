@@ -143,12 +143,16 @@ int64_t parse_single_raw_value(string_view raw_value) {
         return 1;
     }
 
+    if ((raw_value[0] == '0' && raw_value.size() == 1) || isdigit(raw_value[0])) {
+        return std::stoll(string(raw_value), nullptr, 10);
+    }
+
     if (raw_value.front() == '0') {
         if (raw_value.size() < 2) {
             return 0l;
         }
         if (isdigit(raw_value[1])) {
-            return std::stoll(string(raw_value));
+            return std::stoll(string(raw_value), nullptr, 8);
         }
         if (raw_value[1] == 'x') {
             return std::stoll(string(raw_value), nullptr, 16);
