@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
-project(MimeMagic LANGUAGES CXX)
+project(mime_magic LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -14,7 +14,7 @@ include_directories(
 )
 
 add_library(
-        MimeMagic_static
+		${PROJECT_NAME}_static
         STATIC
         loader/mime_loader.cpp
         nodes/basic_mime_node.cpp
@@ -24,7 +24,7 @@ add_library(
 )
 
 add_library(
-        MimeMagic_shared
+		${PROJECT_NAME}_shared
         SHARED
         loader/mime_loader.cpp
         nodes/basic_mime_node.cpp
@@ -34,8 +34,8 @@ add_library(
 )
 
 # Installing libraries and headers
-install(TARGETS MimeMagic_static MimeMagic_shared
-        EXPORT MimeMagicTargets
+install(TARGETS ${PROJECT_NAME}_static ${PROJECT_NAME}_shared
+        EXPORT ${PROJECT_NAME}Targets
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
