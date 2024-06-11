@@ -24,7 +24,7 @@ cmake -DCMAKE_BUILD_TYPE=Release -B cmake_build_release
 ```shell
 Use the command below to build the library.
 You can change the build directory.
-cmake --build build
+cmake --build cmake_build_release
 ```
 > [!IMPORTANT]
 > If you are building a library for msbuild
