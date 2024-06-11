@@ -1,6 +1,6 @@
 # MIME Magic
 
-##Overview
+## Overview
 MIME magic is a cross-platform library that
 is an implementation of the standard
 and has a number of differences from the standard, 
