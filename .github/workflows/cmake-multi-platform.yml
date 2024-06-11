@@ -124,7 +124,7 @@ jobs:
 
       - name: Configure Tests
         working-directory: ${{ github.workspace }}/tests
-        run: cmake -B build
+        run: cmake -G "Visual Studio 16 2019" -B build
         shell: cmd
 
       - name: Build Tests
