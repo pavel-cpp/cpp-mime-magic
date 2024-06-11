@@ -1,0 +1,83 @@
+# Png images
+0	string		\x89PNG		%s
+
+
+
+
+
+>4	belong		!0x0d0a1a0a	%ld
+
+
+
+
+>4	belong		0x0d0a1a0a  %ld
+
+
+
+>>(16)	belong		x		%ld
+
+
+
+>>(10+10)	belong		x		%ld
+
+
+
+
+>>(28-4)	byte		x		%d
+
+
+
+
+>>25	byte		0		%d
+
+
+
+
+
+>>25	byte		2		%d
+
+
+
+
+
+>>25	byte		3		%d
+
+
+
+
+
+>>25	byte		4		%d
+
+
+
+
+
+>>25	byte		(3+3)		%d
+
+
+
+
+
+#>>26	byte		0		%d should not be parsed
+
+
+
+
+
+>>28	byte		0		%d
+
+
+
+
+
+>>28	byte		1		%d
+
+
+
+
+
+1	string		PNG	        %s
+
+
+
+
