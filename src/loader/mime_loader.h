@@ -3,11 +3,13 @@
 
 #include <istream>
 
-#include "node/mime_node.h"
+#include "nodes/basic_mime_node.h"
 
 namespace magic {
 
     mime_list load(std::istream& in);
+
+    mime_list load(const std::string& filename);
 
 } // magic
 
